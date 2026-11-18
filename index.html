@@ -341,12 +341,13 @@ function renderDay(){
       <p>🎯 Target macro giornaliero</p>
       ${editTargets?`
         <div class="macro-grid">
-          <div><label>Proteine g</label><input type="number" id="tP" value="${tgt.p}" onchange="saveTgt()"></div>
-          <div><label>Grassi g</label><input type="number" id="tF" value="${tgt.f}" onchange="saveTgt()"></div>
-          <div><label>Carbo g</label><input type="number" id="tC" value="${tgt.c}" onchange="saveTgt()"></div>
-          <div><label>Kcal</label><input type="number" id="tK" value="${tgt.k}" onchange="saveTgt()"></div>
+          <div><label>Proteine g</label><input type="number" inputmode="decimal" id="tP" value="${tgt.p}" onkeydown="if(event.key==='Enter')saveTgt()"></div>
+          <div><label>Grassi g</label><input type="number" inputmode="decimal" id="tF" value="${tgt.f}" onkeydown="if(event.key==='Enter')saveTgt()"></div>
+          <div><label>Carbo g</label><input type="number" inputmode="decimal" id="tC" value="${tgt.c}" onkeydown="if(event.key==='Enter')saveTgt()"></div>
+          <div><label>Kcal</label><input type="number" inputmode="decimal" id="tK" value="${tgt.k}" onkeydown="if(event.key==='Enter')saveTgt()"></div>
         </div>
-        <div class="btns" style="margin-top:8px"><button class="btn btn-small green" onclick="editTargets=false;renderDay()">✓ Chiudi</button></div>
+        <p class="note" style="margin:8px 0 0">Le quantità di tutti i pasti si ricalcolano in proporzione, mantenendo la distribuzione dei macro tra i pasti. Le kcal si aggiornano da sole se non le cambi tu.</p>
+        <div class="btns" style="margin-top:8px"><button class="btn btn-small green" onclick="saveTgt()">✓ Applica e ricalcola quantità</button><button class="btn btn2 btn-small" onclick="editTargets=false;renderDay()">Annulla</button></div>
       `:`
         <div class="summary" style="margin-top:6px">
           <div><b style="color:var(--p)">${tgt.p}</b><span>Pro g</span></div>
@@ -495,12 +496,34 @@ function saveTgt(){
   const f=+document.getElementById("tF").value;
   const c=+document.getElementById("tC").value;
   const k=+document.getElementById("tK").value;
-  const newT={p,f,c,k};
   const plan=STATE[curDay];
-  let allItems=[];
-  plan.meals.forEach(m=>{ if(!m.free) m.items.forEach(it=>allItems.push(it)); });
-  autoAdjustAll(allItems,newT);
-  plan.targets=newT;
+  const old=plan.targets;
+  const sum=(meals,key)=>{let s=0;meals.forEach(m=>m.items.forEach(it=>s+=it[{p:2,f:3,c:4,k:5}[key]]));return s;};
+  const free=plan.meals.filter(m=>m.free);
+  const fixed=plan.meals.filter(m=>!m.free);
+  // il nuovo target giornaliero (meno lo sgarro, che non si tocca) viene
+  // ripartito sui pasti in proporzione a quanto ciascun pasto pesa oggi per
+  // quel macro: se i carbo salgono del 10% salgono del 10% in ogni pasto,
+  // così resta la distribuzione attorno all'allenamento. Poi ogni pasto si
+  // ribilancia da solo sul suo nuovo target (stesso meccanismo del target pasto).
+  const ratio={};
+  [["p",p],["f",f],["c",c]].forEach(([key,val])=>{
+    const cur=sum(fixed,key);
+    ratio[key]=cur>0?Math.max(0,val-sum(free,key))/cur:1;
+  });
+  fixed.forEach(m=>{
+    let mp=0,mf=0,mc=0;
+    m.items.forEach(it=>{mp+=it[2];mf+=it[3];mc+=it[4];});
+    const mt={p:r1(mp*ratio.p),f:r1(mf*ratio.f),c:r1(mc*ratio.c)};
+    autoAdjustAll(m.items,mt);
+    let mk=0;m.items.forEach(it=>mk+=it[5]);
+    m.targets={...mt,k:Math.round(mk)};
+  });
+  // kcal: se le hai cambiate tu restano le tue, altrimenti seguono i macro
+  const macroChanged=p!==old.p||f!==old.f||c!==old.c;
+  const newK=k!==old.k||!macroChanged?k:Math.round(sum(plan.meals,"k"));
+  plan.targets={p,f,c,k:newK};
+  editTargets=false;
   renderDay();
 }
 
