@@ -146,6 +146,16 @@ details summary{cursor:pointer;font-size:.78rem;color:var(--muted);font-weight:6
 /* Meal target editor */
 .meal-target{background:var(--bg);border-radius:12px;padding:10px;margin-top:10px;}
 .meal-target>p{margin:0 0 6px;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+
+/* Scansione: codice a barre (fotocamera live) e foto etichetta (OCR) */
+.scan-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+.scan-btns .btn{padding:12px 6px;font-size:.85rem;}
+.scan-msg{font-size:.8rem;margin-top:8px;font-weight:600;line-height:1.4;font-family:'Figtree',sans-serif;}
+.scan-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px;}
+.scan-overlay[hidden]{display:none;}
+.scan-box{background:var(--card);border-radius:16px;padding:14px;width:100%;max-width:420px;}
+#scanReader{width:100%;min-height:220px;margin-top:10px;border-radius:12px;overflow:hidden;background:#000;}
+#scanReader video{width:100%!important;display:block;}
 </style>
 </head>
 <body>
@@ -159,6 +169,18 @@ details summary{cursor:pointer;font-size:.78rem;color:var(--muted);font-weight:6
     <input type="time" id="mealStartInput" value="08:00" onchange="setMealStart(this.value)">
     <p class="note" style="margin-top:8px">Gli altri pasti della giornata si spostano da soli, ogni esattamente 3 ore dopo la colazione.</p>
   </div>
+  <div class="scan-overlay" id="scanOverlay" hidden>
+    <div class="scan-box">
+      <b>Inquadra il codice a barre</b>
+      <div id="scanReader"></div>
+      <div id="scanErr" class="scan-msg" style="color:var(--err)"></div>
+      <div class="btns">
+        <button class="btn btn2 btn-small" onclick="document.getElementById('barcodeFile').click()">🖼️ Usa una foto</button>
+        <button class="btn btn2 btn-small" onclick="closeScanner()">Chiudi</button>
+      </div>
+      <input type="file" id="barcodeFile" accept="image/*" hidden onchange="scanBarcodeFile(this)">
+    </div>
+  </div>
   <div class="days" id="dayBtns"></div>
   <div id="dayView"></div>
 
@@ -166,6 +188,13 @@ details summary{cursor:pointer;font-size:.78rem;color:var(--muted);font-weight:6
   <div class="card db-card" style="margin-top:16px">
     <h2 style="margin:0 0 4px;font-size:1rem">📦 Aggiungi un alimento al database</h2>
     <p class="note" style="margin:0 0 10px">Inserisci qualsiasi alimento non presente (es. ananas, nutella, avocado). I valori sono per <b>100 g</b>. Una volta salvato sarà disponibile in tutti i pasti e nelle sostituzioni. Rimane salvato su questo dispositivo anche dopo aver chiuso la pagina.</p>
+    <div class="scan-btns">
+      <button class="btn btn-small" onclick="openScanner()">📷 Codice a barre</button>
+      <button class="btn btn-small" onclick="document.getElementById('labelInput').click()">📸 Foto etichetta</button>
+    </div>
+    <input type="file" id="labelInput" accept="image/*" capture="environment" hidden onchange="readLabel(this)">
+    <div id="scanMsg"></div>
+    <p class="note" style="margin-top:6px">Codice a barre: i valori arrivano da Open Food Facts, un database gratuito di prodotti. Foto etichetta: inquadra dritta e ben illuminata la tabella dei valori nutrizionali. In entrambi i casi i campi qui sotto si compilano da soli: controlla i numeri con l'etichetta e poi premi Salva.</p>
     <div class="db-grid">
       <div class="db-field"><label>Nome alimento</label><input id="dbName" placeholder="es. Ananas" autocomplete="off"></div>
       <div class="db-field"><label>Proteine g</label><input type="number" inputmode="decimal" id="dbP" value="0" min="0" step="0.1"></div>
@@ -726,6 +755,182 @@ function renderCustomList(){
       <td>${f.name}</td><td>${f.p}</td><td>${f.f}</td><td>${f.c}</td><td>${f.k}</td>
       <td><button class="del-btn" onclick="deleteCustomFood('${f.name.replace(/'/g,"\\'")}')">✕</button></td>
     </tr>`).join('')+'</table>';
+}
+
+// ─── SCANSIONE: codice a barre e foto etichetta ──────────────────────────────
+// Le librerie si scaricano solo al primo uso, così la pagina resta leggera.
+const LIB_BARCODE="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+const LIB_OCR="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+const libs={};
+function loadScript(src){
+  return libs[src]||(libs[src]=new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=src;s.onload=res;
+    s.onerror=()=>{delete libs[src];rej(new Error('load'));};
+    document.head.appendChild(s);
+  }));
+}
+const esc=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+function scanMsg(html,color){
+  document.getElementById('scanMsg').innerHTML=html?`<div class="scan-msg" style="color:${color||'var(--muted)'}">${html}</div>`:'';
+}
+
+// compila il form del database; i valori vanno sempre controllati prima di salvare
+function fillDbForm(v,source){
+  if(v.name)document.getElementById('dbName').value=v.name.replace(/["<>]/g,'').replace(/\s+/g,' ').trim();
+  document.getElementById('dbP').value=r1(v.p);
+  document.getElementById('dbF').value=r1(v.f);
+  document.getElementById('dbC').value=r1(v.c);
+  document.getElementById('dbK').value=v.k?Math.round(v.k):'';
+  const noName=!document.getElementById('dbName').value;
+  scanMsg(`✅ Valori letti da ${source} (per 100 g): Pro ${r1(v.p)} · Gra ${r1(v.f)} · Car ${r1(v.c)}${v.k?` · Kcal ${Math.round(v.k)}`:''}.<br>`+
+    (noName?'Scrivi il nome dell\'alimento, ':'')+'Controlla che corrispondano all\'etichetta e premi <b>Salva nel database</b>.','var(--accent)');
+  document.getElementById(noName?'dbName':'dbP').scrollIntoView({behavior:'smooth',block:'center'});
+  if(noName)document.getElementById('dbName').focus();
+}
+
+// ── codice a barre ──
+let scanner=null;
+async function openScanner(){
+  if(scanner)return;
+  const ov=document.getElementById('scanOverlay');
+  document.getElementById('scanErr').textContent='';
+  ov.hidden=false;
+  try{await loadScript(LIB_BARCODE);}
+  catch(e){document.getElementById('scanErr').textContent='Impossibile caricare lo scanner: controlla la connessione.';return;}
+  const F=Html5QrcodeSupportedFormats;
+  scanner=new Html5Qrcode('scanReader',{verbose:false,
+    formatsToSupport:[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128],
+    experimentalFeatures:{useBarCodeDetectorIfSupported:true}});
+  try{
+    await scanner.start({facingMode:'environment'},{fps:10,qrbox:(w,h)=>({width:Math.floor(w*.85),height:Math.floor(Math.min(h,w)*.45)})},
+      code=>{closeScanner();lookupBarcode(code);},()=>{});
+  }catch(e){
+    scanner=null;
+    document.getElementById('scanErr').textContent='Non riesco ad aprire la fotocamera (permesso negato o non disponibile). Puoi usare una foto del codice a barre.';
+  }
+}
+async function closeScanner(){
+  document.getElementById('scanOverlay').hidden=true;
+  const s=scanner;scanner=null;
+  if(s){try{if(s.isScanning)await s.stop();s.clear();}catch(e){}}
+}
+async function scanBarcodeFile(input){
+  const file=input.files[0];input.value='';
+  if(!file)return;
+  try{await loadScript(LIB_BARCODE);}catch(e){document.getElementById('scanErr').textContent='Impossibile caricare lo scanner: controlla la connessione.';return;}
+  await closeScanner();
+  try{
+    const reader=new Html5Qrcode('scanReader',{verbose:false});
+    const code=await reader.scanFile(file,false);
+    lookupBarcode(code);
+  }catch(e){
+    scanMsg('⚠️ Non trovo un codice a barre nella foto. Riprova più vicino e a fuoco, oppure usa "Foto etichetta".','var(--warn)');
+  }
+}
+async function lookupBarcode(code){
+  scanMsg(`🔎 Cerco il codice ${esc(code)}…`);
+  let j;
+  try{
+    const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,product_name_it,brands,nutriments`);
+    j=await r.json();
+  }catch(e){scanMsg('⚠️ Ricerca non riuscita: controlla la connessione e riprova.','var(--warn)');return;}
+  const pr=j&&j.product;
+  const n=pr&&pr.nutriments||{};
+  const p=n.proteins_100g,f=n.fat_100g,c=n.carbohydrates_100g;
+  if(!pr||[p,f,c].some(x=>typeof x!=='number')){
+    scanMsg(`⚠️ Prodotto ${esc(code)} non trovato o senza valori nutrizionali completi in Open Food Facts. Usa "Foto etichetta" oppure inseriscili a mano.`,'var(--warn)');
+    return;
+  }
+  const brand=(pr.brands||'').split(',')[0].trim();
+  const base=(pr.product_name_it||pr.product_name||'').trim();
+  const name=base?(brand&&!base.toLowerCase().includes(brand.toLowerCase())?`${base} (${brand})`:base):'';
+  let k=n['energy-kcal_100g'];
+  if(typeof k!=='number'&&typeof n.energy_100g==='number')k=n.energy_100g/4.184; // energia solo in kJ
+  fillDbForm({name,p,f,c,k},'Open Food Facts');
+}
+
+// ── foto etichetta (OCR nel browser) ──
+// Legge il testo della tabella nutrizionale e prende il primo numero dopo
+// ogni voce (= colonna "per 100 g", che sulle etichette viene sempre per prima).
+function parseLabel(text){
+  // l'OCR scambia spesso lo zero con la "o" (es. "o,5 g")
+  const lines=text.toLowerCase().replace(/[|]/g,' ').replace(/(^|[\s<])o([.,]\d)/gm,(_,a,b)=>a+'0'+b).split(/\n/);
+  const NUM=/(\d+(?:[.,]\d+)?)/;
+  const toN=s=>parseFloat(s.replace(',','.'));
+  // voce del macro, scartando le righe "di cui ..." / "saturi" che la precedono;
+  // se il numero non è sulla stessa riga lo cerca nella riga successiva
+  const grab=(re,before)=>{
+    for(let li=0;li<lines.length;li++){
+      const l=lines[li];
+      const i=l.search(re);
+      if(i<0||before.test(l.slice(0,i)))continue;
+      const m=l.slice(i).match(NUM)||(lines[li+1]||'').match(NUM);
+      if(m){const v=toN(m[1]);if(v>=0&&v<=100)return v;}
+    }
+    return null;
+  };
+  const p=grab(/protein|protid/,/cui/);
+  const f=grab(/grass|lipid|\bfat|fett/,/cui|satur/);
+  const c=grab(/carboidr|carbohydr|glucid|kohlenhydr/,/cui/);
+  let k=null;
+  const flat=lines.join(' ');
+  const mk=flat.match(/(\d{1,4}(?:[.,]\d)?)\s*kcal/);
+  if(mk)k=toN(mk[1]);
+  else{
+    // es. "Energia kJ/kcal 1569/375": cerca la coppia kJ ≈ 4,184 × kcal
+    const el=lines.find(l=>/energ|kcal/.test(l));
+    if(el){
+      const ns=(el.match(/\d+(?:[.,]\d+)?/g)||[]).map(toN);
+      for(let a=0;a<ns.length-1&&k===null;a++){const q=ns[a]/ns[a+1];if(q>3.9&&q<4.4)k=ns[a+1];}
+    }
+  }
+  if(k!==null&&(k<=0||k>950))k=null;
+  return {p,f,c,k};
+}
+// scala in grigio e ingrandisce la foto: Tesseract legge meglio i numeri piccoli
+function prepImage(file){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const scale=Math.min(2,2000/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*scale);cv.height=Math.round(img.height*scale);
+      const ctx=cv.getContext('2d');
+      ctx.filter='grayscale(1) contrast(1.4)';
+      ctx.drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(img.src);
+      res(cv);
+    };
+    img.onerror=rej;
+    img.src=URL.createObjectURL(file);
+  });
+}
+async function readLabel(input){
+  const file=input.files[0];input.value='';
+  if(!file)return;
+  scanMsg('⏳ Preparo la lettura dell\'etichetta… (la prima volta scarica qualche MB)');
+  let worker;
+  try{
+    await loadScript(LIB_OCR);
+    const cv=await prepImage(file);
+    worker=await Tesseract.createWorker('ita+eng',1,{logger:m=>{
+      if(m.status==='recognizing text')scanMsg(`🔎 Leggo l'etichetta… ${Math.round(m.progress*100)}%`);
+    }});
+    const {data}=await worker.recognize(cv);
+    const v=parseLabel(data.text);
+    const missing=[['proteine',v.p],['grassi',v.f],['carboidrati',v.c]].filter(x=>x[1]===null).map(x=>x[0]);
+    if(missing.length===3){
+      scanMsg('⚠️ Non riesco a leggere i valori. Rifai la foto più vicina, dritta e senza riflessi, inquadrando solo la tabella.','var(--warn)');
+      return;
+    }
+    fillDbForm({name:'',p:v.p||0,f:v.f||0,c:v.c||0,k:v.k},'foto');
+    if(missing.length)document.getElementById('scanMsg').insertAdjacentHTML('beforeend',
+      `<div class="scan-msg" style="color:var(--warn)">⚠️ Non ho letto: ${missing.join(', ')}. Inseriscili a mano.</div>`);
+  }catch(e){
+    scanMsg('⚠️ Lettura non riuscita: controlla la connessione e riprova.','var(--warn)');
+  }finally{
+    if(worker)worker.terminate();
+  }
 }
 
 // ─── RIPRISTINA ──────────────────────────────────────────────────────────────
