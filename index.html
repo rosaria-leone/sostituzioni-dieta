@@ -3,159 +3,718 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sostituzioni Dieta</title>
+<title>Piano settimanale e sostituzioni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
+/* layout: hero banner + day selector grid + stacked cards per pasto, un solo
+   colore d'accento per tutti i macro (niente più "arcobaleno" su P/G/C) */
 :root{
-  --bg:#f6f7f9;--card:#ffffff;--text:#1a1d24;--muted:#5a6270;--accent:#4f7cff;--border:#e1e4e9;--good:#2e7d32;--warn:#b26a00;--err:#c62828;
-  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f1f2ee;--card:#ffffff;--text:#1d201c;--muted:#75796f;--line:#e2e3dc;
+  --accent:#3f6355;--accent2:#577a6c;
+  --on:#3f6355;--off:#8c7f66;
+  --warn:#a3652e;--err:#974838;
+  --c:var(--accent);--p:var(--accent);--f:var(--accent);
+  font-family:'Figtree',-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
 }
-html{scroll-padding-top:env(safe-area-inset-top,0px);}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--text:#eef0f3;--muted:#9aa3af;--accent:#6d93ff;--border:#2a2e38;--good:#66bb6a;--warn:#e0a94d;--err:#ef5350;color-scheme:dark;}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#151815;--card:#1d211c;--text:#e9eae4;--muted:#90958a;--line:#2b2f29;
+    --accent:#8fb6a4;--accent2:#6d9684;
+    --on:#8fb6a4;--off:#b3a689;
+    --warn:#cf9a5c;--err:#c77a68;
+    --c:var(--accent);--p:var(--accent);--f:var(--accent);
+    color-scheme:dark;
+  }
 }
-:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--text:#eef0f3;--muted:#9aa3af;--accent:#6d93ff;--border:#2a2e38;--good:#66bb6a;--warn:#e0a94d;--err:#ef5350;color-scheme:dark;}
 *{box-sizing:border-box;}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:16px;}
-h1{font-size:1.25rem;margin:0 0 4px;}
-p.sub{color:var(--muted);margin:0 0 16px;font-size:.82rem;line-height:1.4;}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
-label{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 4px;}
-input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;}
-.row{display:flex;gap:8px;}
-.row>div{flex:1;}
-button{width:100%;margin-top:14px;padding:12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:1rem;font-weight:600;}
-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px;}
-td,th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:right;}
-td:first-child,th:first-child{text-align:left;}
-.big{font-size:1.5rem;font-weight:700;color:var(--accent);}
-.match{color:var(--good);font-weight:700;}
-.err{color:var(--err);font-size:.85rem;margin-top:8px;}
-details summary{cursor:pointer;color:var(--muted);font-size:.82rem;padding:4px 0;}
-.foodlist{max-height:220px;overflow:auto;}
-.note{font-size:.78rem;color:var(--muted);margin-top:8px;line-height:1.4;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:inherit;font-size:15px;line-height:1.4;}
+.num,.pbar-val,td,.summary b,.macro-grid input,.big,.db-field input,select,.add-row .field input{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+.hero{background:var(--accent);color:#fff;padding:22px 18px 44px;}
+.hero h1{margin:0;font-size:1.35rem;font-weight:700;letter-spacing:-.01em;}
+.hero p{margin:6px 0 0;font-size:.82rem;opacity:.85;max-width:520px;font-family:'Figtree',sans-serif;}
+.wrap{max-width:720px;margin:-28px auto 0;padding:0 12px 60px;}
+
+/* Day buttons */
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
+.days button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:14px;padding:10px 4px;font-size:.8rem;font-weight:600;box-shadow:0 2px 8px rgba(20,25,60,.06);cursor:pointer;}
+.days button small{display:block;font-size:.64rem;font-weight:700;letter-spacing:.6px;margin-top:3px;}
+.days button.on-day small{color:var(--on);}
+.days button.off-day small{color:var(--off);}
+.days button.sel{color:#fff;border-color:transparent;}
+.days button.sel.on-day{background:var(--on);}
+.days button.sel.off-day{background:var(--off);}
+.days button.sel small{color:rgba(255,255,255,.8);}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px;}
+.dayhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.dayhead h2{margin:0;font-size:1.1rem;}
+.badge{font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid currentColor;}
+.badge.on{color:var(--on);}
+.badge.off{color:var(--off);}
+.tag{font-size:.78rem;color:var(--muted);margin-top:4px;}
+
+/* Macro targets */
+.macro-editor{background:var(--bg);border-radius:12px;padding:10px;margin-top:10px;}
+.macro-editor p{margin:0 0 8px;font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.macro-grid label{font-size:.68rem;color:var(--muted);margin:0 0 2px;display:block;font-weight:600;font-family:'Figtree',sans-serif;}
+.macro-grid input{width:100%;padding:7px 6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:.85rem;text-align:center;}
+
+/* Progress bars: etichetta+valore su una riga, barra larga sotto, stato in chiaro
+   sotto ancora — più spazio per leggere i numeri, un solo colore d'accento */
+.progress-wrap{margin-top:12px;display:flex;flex-direction:column;gap:12px;}
+.pbar-row{font-size:.82rem;}
+.pbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;gap:8px;}
+.pbar-label{color:var(--text);font-weight:600;font-family:'Figtree',sans-serif;}
+.pbar-val{font-weight:600;white-space:nowrap;}
+.pbar-val b{font-size:1rem;}
+.pbar-val b.over-txt{color:var(--warn);}
+.pbar-tgt{color:var(--muted);font-weight:500;}
+.pbar-bg{background:var(--line);border-radius:999px;height:9px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:999px;transition:width .3s;background:var(--accent);opacity:.7;}
+.pbar-fill.k{opacity:.4;}
+.pbar-fill.over{background:var(--warn);opacity:1;}
+.pbar-status{margin-top:4px;font-size:.72rem;color:var(--muted);font-family:'Figtree',sans-serif;}
+.pbar-status.over-txt{color:var(--warn);font-weight:600;}
+
+/* Meals */
+.meal h3{margin:0 0 8px;font-size:.92rem;display:flex;align-items:center;gap:8px;font-family:'Figtree',sans-serif;}
+.meal h3::before{content:"";width:4px;height:16px;border-radius:3px;background:var(--accent);}
+.meal.free h3::before{background:var(--warn);}
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+th{color:var(--muted);font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.3px;padding:4px 2px;text-align:right;font-family:'Figtree',sans-serif;}
+td{padding:7px 2px;border-top:1px solid var(--line);text-align:right;vertical-align:middle;}
+td:first-child,th:first-child{text-align:left;font-family:'Figtree',sans-serif;}
+tr.tot td{font-weight:700;color:var(--muted);border-top:2px solid var(--line);}
+.sw{font-size:.68rem;font-weight:700;padding:4px 8px;border-radius:999px;border:none;background:var(--accent);color:#fff;white-space:nowrap;cursor:pointer;font-family:'Figtree',sans-serif;}
+.del-btn{font-size:.68rem;padding:4px 7px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'Figtree',sans-serif;}
+
+/* Add food panel */
+.add-panel{margin-top:10px;background:var(--bg);border-radius:12px;padding:10px;border:1px solid var(--line);}
+.add-panel p{margin:0 0 8px;font-size:.78rem;font-weight:700;color:var(--accent);font-family:'Figtree',sans-serif;}
+.add-row{display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;}
+.add-row .field{flex:1;min-width:80px;}
+.add-row .field label{font-size:.68rem;color:var(--muted);font-weight:600;display:block;margin-bottom:3px;font-family:'Figtree',sans-serif;}
+.add-row .field input{width:100%;padding:8px 6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:.85rem;}
+.add-row .field.wide{flex:2;min-width:140px;}
+.add-confirm{margin-top:8px;font-size:.78rem;color:var(--accent);font-weight:600;font-family:'Figtree',sans-serif;}
+
+/* Swap panel */
+.panel{margin-top:12px;background:var(--bg);border-radius:14px;padding:12px;border:1px solid var(--line);}
+.panel b{font-size:.9rem;font-family:'Figtree',sans-serif;}
+label{display:block;font-size:.74rem;color:var(--muted);margin:10px 0 4px;font-weight:600;font-family:'Figtree',sans-serif;}
+select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:.92rem;}
+#mealStartInput{padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:.95rem;font-family:'IBM Plex Mono',monospace;}
+.res{margin-top:10px;font-size:.85rem;line-height:1.5;font-family:'Figtree',sans-serif;}
+.big{font-size:1.2rem;font-weight:800;color:var(--accent);}
+.err-msg{color:var(--err);font-weight:600;font-family:'Figtree',sans-serif;}
+
+/* Buttons */
+.btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.btn{flex:1;min-width:80px;padding:11px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;font-family:'Figtree',sans-serif;}
+.btn.green{background:var(--accent);}
+.btn2{background:var(--card);color:var(--text);border:1px solid var(--line);}
+.btn-small{padding:8px 12px;font-size:.82rem;flex:unset;}
+
+/* Summary */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+.summary div{background:var(--bg);border-radius:12px;padding:10px 4px;text-align:center;}
+.summary b{display:block;font-size:1.05rem;color:var(--text);}
+.summary span{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-family:'Figtree',sans-serif;}
+
+.note-free{font-size:.78rem;color:var(--warn);margin-top:6px;font-weight:600;font-family:'Figtree',sans-serif;}
+.note{font-size:.74rem;color:var(--muted);margin-top:10px;line-height:1.4;font-family:'Figtree',sans-serif;}
+.section-divider{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 4px;font-family:'Figtree',sans-serif;}
+
+/* DB custom */
+.db-card{border-color:var(--line);}
+.db-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:6px;margin-top:10px;align-items:end;}
+.db-field label{font-size:.68rem;color:var(--muted);font-weight:600;display:block;margin-bottom:3px;font-family:'Figtree',sans-serif;}
+.db-field input{width:100%;padding:9px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:.85rem;}
+.db-field input:focus{outline:2px solid var(--accent);border-color:transparent;}
+.db-list{margin-top:10px;max-height:220px;overflow-y:auto;}
+.db-list table{font-size:.75rem;}
+.db-empty{font-size:.8rem;color:var(--muted);padding:8px 0;text-align:center;}
+details summary{cursor:pointer;font-size:.78rem;color:var(--muted);font-weight:600;}
+
+/* Meal target editor */
+.meal-target{background:var(--bg);border-radius:12px;padding:10px;margin-top:10px;}
+.meal-target>p{margin:0 0 6px;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
 </style>
 </head>
 <body>
-<h1>⚖️ Sostituzioni Dieta</h1>
-<p class="sub">Inserisci l'alimento da sostituire e quello che vuoi mangiare: calcolo i grammi esatti mantenendo invariato il macro scelto.</p>
-
-<div class="card">
-  <label>Alimento da sostituire</label>
-  <input list="foods" id="foodA" placeholder="es. Gallette di riso" autocomplete="off">
-  <label>Quantità (g)</label>
-  <input type="number" inputmode="decimal" id="qtyA" value="100" min="0" step="0.1">
-  <label>Sostituiscilo con</label>
-  <input list="foods" id="foodB" placeholder="es. Avena" autocomplete="off">
-  <label>Mantieni invariato</label>
-  <select id="macro">
-    <option value="C">Carboidrati</option>
-    <option value="P">Proteine</option>
-    <option value="F">Grassi</option>
-  </select>
-  <datalist id="foods"></datalist>
-  <button onclick="calc()">Calcola</button>
-  <div id="result"></div>
+<div class="hero">
+  <h1>Piano settimanale</h1>
+  <p>Cambia i macro target, sostituisci, aggiungi o rimuovi alimenti per ogni giorno e ogni pasto.</p>
 </div>
+<div class="wrap">
+  <div class="card" style="margin-top:12px">
+    <p style="margin:0 0 6px;font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">⏰ Orario colazione</p>
+    <input type="time" id="mealStartInput" value="08:00" onchange="setMealStart(this.value)">
+    <p class="note" style="margin-top:8px">Gli altri pasti della giornata si spostano da soli, ogni esattamente 3 ore dopo la colazione.</p>
+  </div>
+  <div class="days" id="dayBtns"></div>
+  <div id="dayView"></div>
 
-<div class="card">
-  <details>
-    <summary>+ Aggiungi un alimento al database</summary>
-    <label>Nome</label><input id="cName" placeholder="es. Fiocchi di quinoa">
-    <div class="row">
-      <div><label>Pro /100g</label><input type="number" inputmode="decimal" id="cP" value="0" step="0.1"></div>
-      <div><label>Gra /100g</label><input type="number" inputmode="decimal" id="cF" value="0" step="0.1"></div>
-      <div><label>Car /100g</label><input type="number" inputmode="decimal" id="cC" value="0" step="0.1"></div>
+  <!-- DATABASE PERSONALIZZATO -->
+  <div class="card db-card" style="margin-top:16px">
+    <h2 style="margin:0 0 4px;font-size:1rem">📦 Aggiungi un alimento al database</h2>
+    <p class="note" style="margin:0 0 10px">Inserisci qualsiasi alimento non presente (es. ananas, nutella, avocado). I valori sono per <b>100 g</b>. Una volta salvato sarà disponibile in tutti i pasti e nelle sostituzioni. Rimane salvato su questo dispositivo anche dopo aver chiuso la pagina.</p>
+    <div class="db-grid">
+      <div class="db-field"><label>Nome alimento</label><input id="dbName" placeholder="es. Ananas" autocomplete="off"></div>
+      <div class="db-field"><label>Proteine g</label><input type="number" inputmode="decimal" id="dbP" value="0" min="0" step="0.1"></div>
+      <div class="db-field"><label>Grassi g</label><input type="number" inputmode="decimal" id="dbF" value="0" min="0" step="0.1"></div>
+      <div class="db-field"><label>Carbo g</label><input type="number" inputmode="decimal" id="dbC" value="0" min="0" step="0.1"></div>
+      <div class="db-field"><label>Kcal (auto)</label><input type="number" inputmode="decimal" id="dbK" value="" min="0" step="1" placeholder="auto"></div>
     </div>
-    <button onclick="addFood()">Salva</button>
-    <p class="note">Resta salvato su questo dispositivo/browser per le prossime volte.</p>
-  </details>
-</div>
+    <p class="note" style="margin-top:6px">Trovi i valori nutrizionali per 100 g sull'etichetta del prodotto o su MyFitnessPal. Le kcal si calcolano automaticamente se lasci il campo vuoto.</p>
+    <div class="btns" style="margin-top:10px">
+      <button class="btn btn-small" style="max-width:220px" onclick="saveCustomFood()">✓ Salva nel database</button>
+    </div>
+    <div id="dbMsg"></div>
+    <details style="margin-top:14px">
+      <summary id="dbCount">▸ Alimenti aggiunti da te (0)</summary>
+      <div class="db-list" id="customList"><p class="db-empty">Nessun alimento aggiunto ancora.</p></div>
+    </details>
+  </div>
 
-<div class="card">
-  <details>
-    <summary>Vedi database alimenti (valori per 100g)</summary>
-    <div class="foodlist"><table id="dbTable"><thead><tr><th>Alimento</th><th>Pro (g)</th><th>Gra (g)</th><th>Car (g)</th><th>Kcal</th></tr></thead><tbody></tbody></table></div>
-  </details>
 </div>
 
 <script>
-const DB=[["Avena",14,7,60,376,"C"],["Uovo intero",13,11,1,156,"P"],["Albume",11,0,0,44,"P"],
-["Noci di pecan",9,72,4,690,"F"],["Mirtilli",0.7,0.3,14.5,57,"C"],["Whey isolate",90,1,3,380,"P"],
-["Burro di arachidi",26,49,12,590,"F"],["Riso",7,1,80,360,"C"],["Riso soffiato",7,1,84.5,375,"C"],
-["Tonno fresco",23,1.2,0,105,"P"],["Verdure",2,0,5,28,"C"],["Olio EVO",0,100,0,900,"F"],
-["Pane Azzimo",11,0.9,80,375,"C"],["Patate classiche (crude)",2,0.1,17,77,"C"],
-["Carne macinata magra di vitello",21,4.5,0,125,"P"],["Gallette di riso",8,1,81,377,"C"],
-["Mandorle",21,50,22,579,"F"],["Noci normali",15,65,14,654,"F"],["Anacardi",18,44,30,553,"F"],
-["Fette Wasa (Integrali)",11,2,60,320,"C"],["Pane Integrale/Segale",9,3,45,240,"C"],
-["Tonno in vetro al naturale",25,0.5,0,108,"P"],["Merluzzo congelato",14.4,0.8,0,64,"P"],
-["Nasello congelato",15,0.8,0,68,"P"],["Cuori di filetto di Platessa congelati",13,0.5,0,58,"P"],
-["Calamari/Seppie fresche",15,1,0.5,70,"P"],["Pesce spada fresco",20,4,0,121,"P"],
-["Gamberetti sgusciati congelati",16,0.5,0,70,"P"],["Polpo fresco",10.6,1,0.5,53,"P"],
-["Alici fresche",20,4.65,0,122,"P"],["Sgombro fresco",20,13,0,197,"P"],
-["Fichi freschi",1,0.3,19,75,"C"],["Prugne",0.7,0.2,11.5,46,"C"],["Fragole",0.8,0.3,5.3,27,"C"],
-["Pesche",0.8,0.2,9.5,39,"C"],["Melone",0.6,0.2,7.4,33,"C"],["Anguria",0.6,0.2,3.7,19,"C"],
-["Mango",0.6,0.3,15,60,"C"],["Pere",0.4,0.1,15,57,"C"],["Mele",0.3,0.2,13.8,52,"C"],
-["Kiwi",1.1,0.5,14.6,61,"C"],["Arance",0.9,0.1,11.8,47,"C"],["Yogurt greco 0%",10.3,0,4,57,"P"],
-["Pasta/Pasta di semola",13,1.5,71,352,"C"],["Cous cous",13,1.5,72,357,"C"],
-["Tagliata di Entrecote",20,14,0,206,"P"],["Crema di riso",6,1,80,360,"C"],
-["Crema di Avena",14,7,60,376,"C"],["Banana",1,0.3,23,89,"C"],["Ciclodestrine",0,0,100,400,"C"],
-["Petto di pollo",23,1,0,100,"P"],["Polenta (farina di mais)",8,1,75,351,"C"],
-["Fettine di vitello magro",20.7,2,0,107,"P"],["Petto di tacchino",24,1.2,0,107,"P"],
-["Fesa di tacchino a fette",24,1.2,1,110,"P"],["Tagliata di pollo (Lidl)",23,1.5,1,109,"P"],
-["Fesa di bovino (Carpaccio)",22,2,0,108,"P"],["Salmone fresco",20,13,0,208,"P"]];
-let custom=[];
-try{custom=JSON.parse(localStorage.getItem('customFoods')||'[]');}catch(e){custom=[];}
-function allFoods(){return DB.concat(custom);}
-function findFood(n){
-  n=(n||'').trim().toLowerCase();
-  if(!n)return null;
-  let f=allFoods().find(x=>x[0].toLowerCase()===n);
-  if(!f)f=allFoods().find(x=>x[0].toLowerCase().includes(n));
-  return f;
+// ─── PIANI BASE (dai PDF) ───────────────────────────────────────────────────
+const PLANS = {
+"Lunedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:395,k:2734},meals:[
+ {t:"Colazione 08:00",items:[["Avena",24,3.3,1.7,14.2,89],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",12.1,1.0,8.6,0.4,82],["Mirtilli",83,0.6,0.2,12.0,47]]},
+ {t:"Spuntino pre-WO 11:00",items:[["Crema di riso",59,3.5,0.6,47.2,212],["Whey isolate",24,21.6,0.2,0.7,92],["Banana",86,0.9,0.3,19.8,76],["Olio EVO",3.9,0,3.9,0,35]]},
+ {t:"Intra-WO 12:00",items:[["Ciclodestrine",36,0,0,36.2,145]]},
+ {t:"Pranzo post-WO 14:00",items:[["Patate classiche (crude)",776.3,15.5,0.8,131.9,598],["Petto di pollo",130,29.8,1.3,0,130],["Verdure",150,3,0,7.5,42]]},
+ {t:"Merenda 17:00",items:[["Albume",158,17.4,0,0,70],["Crema di riso",59,3.5,0.6,47.2,212],["Burro di arachidi",8.8,2.3,4.4,1.1,53]]},
+ {t:"Cena 20:00",items:[["Riso",58,4.1,0.6,46.5,209],["Merluzzo congelato",212,30.6,1.7,0,136],["Verdure",150,3,0,7.5,42],["Olio EVO",12.8,0,12.8,0,115]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",126,13,0,5,72],["Burro di arachidi",15.7,4.1,7.6,1.8,92],["Gallette di riso",19,1.5,0.2,15.1,70]]}
+]},
+"Martedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:395,k:2743},meals:[
+ {t:"Colazione 08:00",items:[["Avena",23,3.2,1.6,13.9,87],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",12.4,1.1,8.9,0.5,85],["Mirtilli",84,0.6,0.3,12.1,48]]},
+ {t:"Spuntino pre-WO 11:00",items:[["Crema di riso",60,3.6,0.6,47.9,215],["Whey isolate",21,18.8,0.2,0.6,80],["Banana",88,0.9,0.3,20.2,78],["Olio EVO",3.9,0,3.9,0,35]]},
+ {t:"Intra-WO 12:00",items:[["Ciclodestrine",38,0,0,38,152]]},
+ {t:"Pranzo post-WO 14:00",items:[["Cous cous",183.3,24,2.7,132.2,654],["Petto di pollo",120.4,27.6,1.2,0,120],["Verdure",150,3,0,7.5,42]]},
+ {t:"Merenda 17:00",items:[["Albume",158,17.4,0,0,69],["Crema di riso",55,3.3,0.5,43.9,198],["Burro di arachidi",9,2.4,4.5,1.1,54]]},
+ {t:"Cena 20:00",items:[["Riso",59,4.1,0.6,46.9,211],["Gamberetti sgusciati congelati",200,32,1,0,140],["Verdure",150,3,0,7.5,42],["Olio EVO",12.3,0,12.2,0,109]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",123,12.6,0,4.9,70],["Burro di arachidi",14.3,3.6,6.8,1.6,83],["Gallette di riso",19,1.5,0.2,15.6,73]]}
+]},
+"Mercoledì OFF":{type:"off",tag:"Riposo",targets:{p:175,f:80,c:270,k:2521},meals:[
+ {t:"Colazione 08:00",items:[["Avena",30,4.3,2.2,18.3,115],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",7.5,0.7,5.43,0.3,52],["Mirtilli",74,0.5,0.2,10.7,42]]},
+ {t:"Spuntino 11:00",items:[["Yogurt greco 0%",128,13.2,0,5.1,73],["Avena",30,4.3,2.2,18.3,115],["Burro di arachidi",21.9,6.0,11.13,2.8,135]]},
+ {t:"Pranzo 14:00",items:[["Riso",73,5.1,0.7,58.3,262],["Salmone fresco",97.3,19.4,12.63,0,202],["Verdure",150,3,0,7.5,42]]},
+ {t:"Merenda 17:00",items:[["Albume",164,18,0,0,72],["Pane Azzimo",63.9,7.2,0.6,51.7,242],["Burro di arachidi",25.2,6.7,12.73,3.2,152]]},
+ {t:"Cena 20:00",items:[["Polenta (farina di mais)",73,5.9,0.7,54.9,256],["Tagliata di pollo (Lidl)",179,41.1,2.7,1.8,195],["Verdure",150,3,0,7.5,42],["Olio EVO",9.4,0,9.93,0,89]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",128,13.2,0,5.1,73],["Burro di arachidi",25.8,6.9,13.03,3.3,158],["Gallette di riso",30,2.4,0.3,24.3,113]]}
+]},
+"Giovedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:395,k:2753},meals:[
+ {t:"Colazione 08:00",items:[["Avena",23,3.2,1.6,13.6,85],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",10.7,1.0,7.7,0.4,73],["Mirtilli",83,0.6,0.2,12,47]]},
+ {t:"Spuntino pre-WO 11:00",items:[["Crema di riso",60,3.6,0.6,47.9,215],["Whey isolate",21,18.7,0.2,0.6,79],["Banana",88,0.9,0.3,20.2,78],["Olio EVO",3.9,0,3.9,0,35]]},
+ {t:"Intra-WO 12:00",items:[["Ciclodestrine",38,0,0,37.7,151]]},
+ {t:"Pranzo post-WO 14:00",items:[["Pasta di semola",181.5,23.6,2.8,128.7,639],["Petto di tacchino",129,31,1.6,0,138],["Verdure",150,3,0,7.5,42]]},
+ {t:"Merenda 17:00",items:[["Albume",154,16.9,0,0,68],["Crema di riso",60,3.6,0.6,47.9,215],["Burro di arachidi",8.8,2.3,4.4,1.1,53]]},
+ {t:"Cena 20:00",items:[["Polenta (farina di mais)",63,5.1,0.6,47.4,221],["Fettine di vitello magro",136,28.1,2.7,0,145],["Verdure",150,3,0,7.5,42],["Olio EVO",11.4,0,11.7,0,105]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",123,12.6,0,4.9,70],["Burro di arachidi",13.5,3.4,6.5,1.6,78],["Gallette di riso",19,1.5,0.2,15.3,71]]}
+]},
+"Venerdì OFF":{type:"off",tag:"Riposo",targets:{p:164,f:80,c:270,k:2460},meals:[
+ {t:"Colazione 08:00",items:[["Avena",35.7,5,2.5,21.6,135],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",7.1,0.7,5.13,0.3,49],["Mirtilli",79,0.6,0.2,11.5,45]]},
+ {t:"Spuntino 11:00",items:[["Whey isolate",19,17,0.2,0.6,72],["Avena",35.7,5,2.5,21.5,134],["Burro di arachidi",21.9,5.6,10.63,2.7,128]]},
+ {t:"Pranzo 14:00",items:[["Riso",73,5.1,0.7,58.6,264],["Tonno fresco",109,25,1.3,0,114],["Verdure",150,3,0,7.5,42],["Olio EVO",11.5,0,11.33,0,102]]},
+ {t:"Merenda 17:00",items:[["Albume",131,14.4,0,0,58],["Pane Azzimo",73.4,8,0.7,58.4,273],["Burro di arachidi",26.1,6.7,12.63,3.2,154]]},
+ {t:"Cena 20:00",items:[["Patate classiche (crude)",300,6,0.3,51,231],["Carne macinata magra di vitello",122,25.5,5.5,0,152],["Verdure",150,3,0,7.5,42],["Olio EVO",7.6,0,7.53,0,68]]},
+ {t:"Pre-Nanna 23:00",items:[["Albume",150,16.5,0,0,66],["Burro di arachidi",27.0,6.9,13.03,3.3,157],["Gallette di riso",30,2.4,0.3,24.3,113]]}
+]},
+"Sabato ON":{type:"on",tag:"Allenamento 15:00 · sgarro serale",targets:{p:164,f:51,c:395,k:2688},meals:[
+ {t:"Colazione 08:00",items:[["Uovo intero",50,6.5,5.5,0.5,78],["Albume",120,13.2,0,0,53],["Avena",40,5.5,2.8,23.7,148]]},
+ {t:"Spuntino 11:00",items:[["Yogurt greco 0%",156,16.1,0,6.2,89],["Olio EVO",5,0,5,0,45]]},
+ {t:"Pranzo post-WO 13:30",items:[["Cous cous",119.3,17.9,2.1,86.1,427],["Petto di pollo",200,46,2,0,200],["Verdure",150,3,0,7.5,42]]},
+ {t:"Intra-WO 15:00",items:[["Ciclodestrine",30,0,0,30,120]]},
+ {t:"Merenda post-WO 17:00",items:[["Crema di riso",111,6.7,1.2,88.8,400],["Whey isolate",30,27,0.3,0.9,114],["Banana",113,1.1,0.3,26.1,101],["Olio EVO",3.2,0,3.2,0,29]]},
+ {t:"Cena 20:00 - SGARRO",free:true,items:[["Pasto libero (sgarro)",0,35,28.6,125,897]]}
+]},
+"Domenica OFF":{type:"off",tag:"Riposo · Entrecôte a cena",targets:{p:175,f:80,c:270,k:2500},meals:[
+ {t:"Colazione 08:00",items:[["Avena",48.5,7,3.4,29.6,187],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",5.9,0.6,4.23,0.2,40],["Mirtilli",78,0.5,0.2,11.2,44]]},
+ {t:"Spuntino 11:00",items:[["Yogurt greco 0%",126,13,0,5,72],["Avena",48.5,6.7,3.4,29,182],["Burro di arachidi",19.9,5.3,9.93,2.5,119]]},
+ {t:"Pranzo 14:00",items:[["Pasta di semola",82,10.6,1.2,59.6,288],["Carne macinata magra di vitello",111,23.3,5,0,138],["Verdure",150,3,0,7.5,42],["Olio EVO",6.4,0,7.13,0,64]]},
+ {t:"Merenda 17:00",items:[["Albume",121,13.3,0,0,53],["Riso soffiato",69.6,4.9,0.7,58.8,261],["Burro di arachidi",25.3,6.7,12.63,3.1,152]]},
+ {t:"Cena 20:00",items:[["Patate classiche (crude)",157,3.1,0.2,26.7,121],["Entrecôte",93.8,18.8,13.13,0,194],["Verdure",150,3,0,7.5,42]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",119,12.3,0,4.8,68],["Burro di arachidi",26.1,6.9,13.03,3.2,156],["Gallette di riso",32,2.5,0.3,25.8,120]]}
+]}
+};
+
+// ─── DATABASE ALIMENTI per 100g ─────────────────────────────────────────────
+const EXTRA=[["Pane bianco",9,1.2,55,265],["Cioccolato fondente 85%",12.5,46,22,584],["Melograno",0.5,0.2,15.9,63],["Fiocchi di avena",13.5,7,58,372],["Mandorle",21,50,22,579],["Noci normali",15,65,14,654],["Anacardi",18,44,30,553],
+["Fette Wasa (integrali)",11,2,60,320],["Pane integrale/segale",9,3,45,240],["Tonno in vetro al naturale",25,0.5,0,108],
+["Merluzzo congelato",14.4,0.8,0,64],["Nasello congelato",17,0.3,0,71],["Alici fresche",16.8,2.6,0,96],
+["Sgombro fresco",17,11.1,0,170],["Pesce spada fresco",20,4,0,121],["Calamari/Seppie fresche",12.6,1.7,0.6,68],
+["Polpo fresco",10.6,1,0.5,53],["Gamberetti sgusciati congelati",16,0.5,0,70],["Petto di tacchino",24,1.2,0,107],
+["Fesa di tacchino a fette",24,1.2,1,110],["Fettine di vitello magro",20.7,2,0,107],["Fesa di bovino (carpaccio)",22,2,0,108],
+["Crema di Avena",14,7,60,376],["Fichi freschi",1,0.3,19,75],["Prugne",0.7,0.2,11.5,46],
+["Fragole",0.7,0.3,7.7,32],["Pesche",0.8,0.2,9.5,39],["Melone",0.6,0.2,7.4,33],["Anguria",0.6,0.15,7.6,30],
+["Mango",0.6,0.3,15,60],["Pere",0.4,0.1,15,57],["Mele",0.3,0.2,13.8,52],["Kiwi",1.1,0.5,14.6,61],
+["Arance",0.9,0.1,11.8,47],["Riso soffiato",7,1,84.5,375],["Cous cous",13,1.5,72,357],
+["Pasta di semola",13,1.5,71,352],["Carne rossa magra - filetto di manzo",20.5,5,0,127],
+["Lonza di maiale",20.7,7,0,146],["Coniglio",21,4,0,126],["Sogliola",16.9,1.4,0.8,83],
+["Riso integrale",7.5,2.7,77,360],["Pasta integrale",13,2.5,67,340],["Gallette di mais",7.5,2.8,79,380],
+["Pane integrale",13,4,41,247],["Patate gialle/americane",2,0.1,17,77],["Farina di avena",13,7,60,370],
+["Purè di patate",2,3,14,95],["Frutti di bosco",0.7,0.3,10,45],["Burro di mandorle",21,55,19,610],
+["Avocado",2,15,9,160],["Crema di sesamo thai (tahin)",17,54,21,595],["Semi di sesamo",18,50,23,573],
+["Nocciole",15,61,17,628],["Tuorlo d'uovo",16,27,3.6,322]];
+
+const FOODS={};
+for(const k in PLANS) for(const m of PLANS[k].meals) for(const it of m.items){
+  if(it[1]<=0||FOODS[it[0]])continue;
+  FOODS[it[0]]={p:it[2]/it[1]*100,f:it[3]/it[1]*100,c:it[4]/it[1]*100,k:it[5]/it[1]*100};
 }
-function renderList(){
-  const dl=document.getElementById('foods');dl.innerHTML='';
-  allFoods().forEach(f=>{const o=document.createElement('option');o.value=f[0];dl.appendChild(o);});
-  const tb=document.querySelector('#dbTable tbody');tb.innerHTML='';
-  allFoods().forEach(f=>{tb.innerHTML+=`<tr><td>${f[0]}</td><td>${f[1]}</td><td>${f[2]}</td><td>${f[3]}</td><td>${f[4]}</td></tr>`;});
+for(const e of EXTRA) if(!FOODS[e[0]]) FOODS[e[0]]={p:e[1],f:e[2],c:e[3],k:e[4]};
+
+// ─── STATO ──────────────────────────────────────────────────────────────────
+let STATE=JSON.parse(JSON.stringify(PLANS));
+let curDay="Lunedì ON";
+let swapCtx=null;   // {mi,ii}
+let addCtx=null;    // mi
+let editTargets=false;
+let editMealIdx=null; // mi del pasto di cui si sta modificando il target
+
+// ─── ORARIO COLAZIONE → tutti gli altri pasti a +3h esatte l'uno dall'altro ──
+let mealStartMin=8*60; // default 08:00, in minuti dalla mezzanotte
+try{
+  const saved=localStorage.getItem('mealStartMin');
+  if(saved!==null && !isNaN(+saved))mealStartMin=+saved;
+}catch(e){}
+function fmtTime(totalMin){
+  totalMin=((totalMin%1440)+1440)%1440;
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  return String(h).padStart(2,'0')+":"+String(m).padStart(2,'0');
 }
-function addFood(){
-  const n=document.getElementById('cName').value.trim();
-  if(!n)return;
-  const p=+document.getElementById('cP').value,f=+document.getElementById('cF').value,c=+document.getElementById('cC').value;
-  const kcal=Math.round(p*4+f*9+c*4);
-  custom.push([n,p,f,c,kcal,"C"]);
-  try{localStorage.setItem('customFoods',JSON.stringify(custom));}catch(e){}
-  renderList();
-  document.getElementById('cName').value='';
+function setMealStart(v){
+  const parts=v.split(':');
+  const h=+parts[0],m=+parts[1];
+  if(isNaN(h)||isNaN(m))return;
+  mealStartMin=h*60+m;
+  try{localStorage.setItem('mealStartMin',String(mealStartMin));}catch(e){}
+  renderDay();
 }
-function calc(){
-  const res=document.getElementById('result');
-  const A=findFood(document.getElementById('foodA').value);
-  const B=findFood(document.getElementById('foodB').value);
-  const qtyA=+document.getElementById('qtyA').value;
-  const macro=document.getElementById('macro').value;
-  if(!A||!B||!qtyA){res.innerHTML='<p class="err">Seleziona entrambi gli alimenti (dalla lista) e una quantità valida.</p>';return;}
-  const idx={P:1,F:2,C:3}[macro];
-  const label={P:'proteine',F:'grassi',C:'carboidrati'}[macro];
-  const amountA=A[idx]/100*qtyA;
-  if(B[idx]<=0){res.innerHTML=`<p class="err">${B[0]} non contiene ${label}: impossibile pareggiare su questo macro.</p>`;return;}
-  const qtyB=amountA/(B[idx]/100);
-  const pA=A[1]/100*qtyA,fA=A[2]/100*qtyA,cA=A[3]/100*qtyA,kA=A[4]/100*qtyA;
-  const pB=B[1]/100*qtyB,fB=B[2]/100*qtyB,cB=B[3]/100*qtyB,kB=B[4]/100*qtyB;
-  const d=(x,y)=>{let v=y-x;if(Math.abs(v)<0.05)v=0;return (v>=0?'+':'')+v.toFixed(1);};
-  res.innerHTML=`<p style="margin-top:14px">Equivalente a <span class="big">${qtyB.toFixed(1)} g</span> di ${B[0]}</p>
-  <table><tr><th></th><th>Pro</th><th>Gra</th><th>Car</th><th>Kcal</th></tr>
-  <tr><td>${qtyA} g ${A[0]}</td><td>${pA.toFixed(1)}</td><td>${fA.toFixed(1)}</td><td>${cA.toFixed(1)}</td><td>${kA.toFixed(0)}</td></tr>
-  <tr><td>${qtyB.toFixed(1)} g ${B[0]}</td><td class="${macro==='P'?'match':''}">${pB.toFixed(1)}</td><td class="${macro==='F'?'match':''}">${fB.toFixed(1)}</td><td class="${macro==='C'?'match':''}">${cB.toFixed(1)}</td><td>${kB.toFixed(0)}</td></tr>
-  <tr><td>Differenza</td><td>${d(pA,pB)}</td><td>${d(fA,fB)}</td><td>${d(cA,cB)}</td><td>${d(kA,kB)}</td></tr></table>
-  <p class="note">Macro mantenuto: ${label} (uguale per definizione). Le altre colonne mostrano lo scarto reale, utile per capire se serve un piccolo aggiustamento altrove.</p>`;
+// titolo pasto con l'orario ricalcolato (mi = indice del pasto nel giorno = +3h per ogni indice)
+function mealTitle(m,mi){
+  return m.t.replace(/\d{1,2}:\d{2}/,fmtTime(mealStartMin+mi*180));
 }
-document.getElementById('foodA').addEventListener('input',()=>{
-  const A=findFood(document.getElementById('foodA').value);
-  if(A)document.getElementById('macro').value=A[5]||'C';
-});
-renderList();
+
+const r1=x=>Math.round(x*10)/10;
+const pct=(v,t)=>t>0?Math.min(v/t*100,120):0;
+const dom=it=>{const kp=it[2]*4,kf=it[3]*9,kc=it[4]*4;return kc>=kp&&kc>=kf?"C":kp>=kf?"P":"F";};
+
+// ─── RENDER BOTTONI GIORNI ───────────────────────────────────────────────────
+function renderBtns(){
+  const box=document.getElementById("dayBtns");box.innerHTML="";
+  Object.keys(PLANS).forEach(d=>{
+    const tp=PLANS[d].type;
+    const b=document.createElement("button");
+    b.className=tp+"-day"+(d===curDay?" sel":"");
+    b.innerHTML=d.replace(" ON","").replace(" OFF","")+`<small>${tp.toUpperCase()}</small>`;
+    b.onclick=()=>{curDay=d;swapCtx=null;addCtx=null;editTargets=false;editMealIdx=null;renderBtns();renderDay();};
+    box.appendChild(b);
+  });
+}
+
+// ─── RENDER GIORNO ──────────────────────────────────────────────────────────
+function renderDay(){
+  const plan=STATE[curDay];
+  const tgt=plan.targets;
+  const tp=PLANS[curDay].type;
+  let T={p:0,f:0,c:0,k:0};
+  plan.meals.forEach(m=>m.items.forEach(it=>{T.p+=it[2];T.f+=it[3];T.c+=it[4];T.k+=it[5];}));
+
+  // ── intestazione giorno ──
+  let html=`<div class="card">
+    <div class="dayhead"><h2>${curDay.replace(" ON","").replace(" OFF","")}</h2><span class="badge ${tp}">${tp.toUpperCase()}</span></div>
+    <div class="tag">${PLANS[curDay].tag}</div>
+    <div class="macro-editor">
+      <p>🎯 Target macro giornaliero</p>
+      ${editTargets?`
+        <div class="macro-grid">
+          <div><label>Proteine g</label><input type="number" id="tP" value="${tgt.p}" onchange="saveTgt()"></div>
+          <div><label>Grassi g</label><input type="number" id="tF" value="${tgt.f}" onchange="saveTgt()"></div>
+          <div><label>Carbo g</label><input type="number" id="tC" value="${tgt.c}" onchange="saveTgt()"></div>
+          <div><label>Kcal</label><input type="number" id="tK" value="${tgt.k}" onchange="saveTgt()"></div>
+        </div>
+        <div class="btns" style="margin-top:8px"><button class="btn btn-small green" onclick="editTargets=false;renderDay()">✓ Chiudi</button></div>
+      `:`
+        <div class="summary" style="margin-top:6px">
+          <div><b style="color:var(--p)">${tgt.p}</b><span>Pro g</span></div>
+          <div><b style="color:var(--f)">${tgt.f}</b><span>Gra g</span></div>
+          <div><b style="color:var(--c)">${tgt.c}</b><span>Car g</span></div>
+          <div><b>${tgt.k}</b><span>Kcal</span></div>
+        </div>
+        <div class="btns" style="margin-top:8px"><button class="btn btn2 btn-small" onclick="editTargets=true;renderDay()">✏️ Modifica target</button></div>
+      `}
+    </div>
+    <div class="progress-wrap">
+      ${bar("p","Proteine",T.p,tgt.p,"g")}
+      ${bar("f","Grassi",T.f,tgt.f,"g")}
+      ${bar("c","Carbo",T.c,tgt.c,"g")}
+      ${bar("k","Kcal",T.k,tgt.k,"")}
+    </div>
+  </div>`;
+
+  // ── pasti ──
+  plan.meals.forEach((m,mi)=>{
+    let mp=0,mf=0,mc=0,mk=0;
+    let rows="";
+    m.items.forEach((it,ii)=>{
+      mp+=it[2];mf+=it[3];mc+=it[4];mk+=it[5];
+      rows+=`<tr>
+        <td>${it[0]}</td><td>${r1(it[1])}</td><td>${r1(it[2])}</td><td>${r1(it[3])}</td><td>${r1(it[4])}</td><td>${Math.round(it[5])}</td>
+        <td style="display:flex;gap:4px;justify-content:flex-end;padding:7px 2px">
+          ${!m.free&&it[1]>0?`<button class="sw" onclick="openSwap(${mi},${ii})">Cambia</button><button class="del-btn" onclick="delItem(${mi},${ii})">✕</button>`:""}
+        </td>
+      </tr>`;
+    });
+    const mtgt=!m.free?ensureMealTargets(mi):null;
+    html+=`<div class="card meal ${m.free?"free":""}">
+      <h3>${mealTitle(m,mi)}</h3>
+      <table>
+        <tr><th>Alimento</th><th>g</th><th>Pro</th><th>Gra</th><th>Car</th><th>Kcal</th><th></th></tr>
+        ${rows}
+        <tr class="tot"><td>Totale pasto</td><td></td><td>${r1(mp)}</td><td>${r1(mf)}</td><td>${r1(mc)}</td><td>${Math.round(mk)}</td><td></td></tr>
+      </table>
+      ${m.free?'<div class="note-free">Pasto libero — non modificabile.</div>':""}
+      ${!m.free?`<div class="btns" style="margin-top:10px"><button class="btn green btn-small" onclick="openAdd(${mi})">+ Aggiungi alimento</button></div>`:""}
+      ${!m.free?`
+      <div class="meal-target">
+        <p>🎯 Target di questo pasto — cambialo e le quantità degli alimenti si aggiornano in automatico</p>
+        ${editMealIdx===mi?`
+          <div class="macro-grid">
+            <div><label>Pro g</label><input type="number" id="mtP" value="${mtgt.p}" onchange="saveMealTgt(${mi})"></div>
+            <div><label>Gra g</label><input type="number" id="mtF" value="${mtgt.f}" onchange="saveMealTgt(${mi})"></div>
+            <div><label>Car g</label><input type="number" id="mtC" value="${mtgt.c}" onchange="saveMealTgt(${mi})"></div>
+            <div><label>Kcal</label><input type="number" id="mtK" value="${mtgt.k}" onchange="saveMealTgt(${mi})"></div>
+          </div>
+          <div class="btns" style="margin-top:8px"><button class="btn btn-small green" onclick="editMealIdx=null;renderDay()">✓ Chiudi</button></div>
+        `:`
+          <div class="btns" style="margin-top:2px"><button class="btn btn2 btn-small" onclick="editMealIdx=${mi};renderDay()">✏️ Modifica target pasto</button></div>
+        `}
+        <div class="progress-wrap">
+          ${bar("p","Proteine",mp,mtgt.p,"g")}
+          ${bar("f","Grassi",mf,mtgt.f,"g")}
+          ${bar("c","Carbo",mc,mtgt.c,"g")}
+          ${bar("k","Kcal",mk,mtgt.k,"")}
+        </div>
+      </div>`:""}
+      ${addCtx===mi?addPanel(mi):""}
+      ${swapCtx&&swapCtx.mi===mi?swapPanel(mi,swapCtx.ii):""}
+    </div>`;
+  });
+
+  // ── totale giornata ──
+  html+=`<div class="card">
+    <h2 style="margin:0 0 2px;font-size:1rem">Totale giornata</h2>
+    <div class="summary">
+      <div><b style="color:var(--p)">${r1(T.p)}</b><span>Proteine g</span></div>
+      <div><b style="color:var(--f)">${r1(T.f)}</b><span>Grassi g</span></div>
+      <div><b style="color:var(--c)">${r1(T.c)}</b><span>Carbo g</span></div>
+      <div><b>${Math.round(T.k)}</b><span>Kcal</span></div>
+    </div>
+    <div class="btns"><button class="btn btn2" onclick="resetDay()">↺ Ripristina piano originale</button></div>
+    <p class="note">Le modifiche restano attive finché non ricarichi la pagina.</p>
+  </div>`;
+
+  document.getElementById("dayView").innerHTML=html;
+  if(editTargets){
+    document.getElementById("tP")&&document.getElementById("tP").focus();
+  }
+}
+
+function bar(cls,label,val,tgt,unit){
+  const p=pct(val,tgt);
+  const over=val>tgt;
+  const left=r1(tgt-val);
+  const status=over?`${Math.abs(left)}${unit} oltre il target`:(left<=0?"Target raggiunto":`mancano ${left}${unit}`);
+  return `<div class="pbar-row">
+    <div class="pbar-top">
+      <span class="pbar-label">${label}</span>
+      <span class="pbar-val"><b class="${over?"over-txt":""}">${r1(val)}${unit}</b><span class="pbar-tgt"> / ${tgt}${unit}</span></span>
+    </div>
+    <div class="pbar-bg"><div class="pbar-fill ${cls}${over?" over":""}" style="width:${p}%"></div></div>
+    <div class="pbar-status${over?" over-txt":""}">${status}</div>
+  </div>`;
+}
+
+// ─── AUTO-BILANCIAMENTO: cambia la quantità del cibo dominante per quel macro ─
+// items: array di righe [nome,g,p,f,c,kcal] (mutate in-place, per riferimento)
+// target: {p,f,c,k} nuovo obiettivo da raggiungere sommando tutte le righe
+function autoAdjustAll(items,target,protect){
+  const cols={p:2,f:3,c:4};
+  // più passate: una singola passata lascia residui quando il cibo dominante
+  // di un macro viene leggermente spostato dalla correzione di un altro
+  // macro (es. aggiungere proteine tocca anche un filo di grassi). Ripetendo
+  // la correzione e arrotondando SOLO alla fine, il pasto torna esattamente
+  // sul target invece di lasciare "mancano 0.x g" residui.
+  // "protect": riga da escludere dalla scelta come "leva" (es. l'alimento appena
+  // aggiunto) — resta comunque nel conteggio dei totali, ma non viene lei stessa
+  // ridotta per fare spazio a se stessa.
+  for(let pass=0;pass<4;pass++){
+    let moved=false;
+    ["p","f","c"].forEach(key=>{
+      const col=cols[key];
+      let curVal=0; items.forEach(it=>curVal+=it[col]);
+      const delta=target[key]-curVal;
+      if(Math.abs(delta)<0.03)return; // già in target
+      // trova, tra gli alimenti modificabili del pasto/giorno, quello col valore più alto per questo macro
+      let best=-1,bestVal=-1;
+      items.forEach((it,i)=>{ if(it!==protect && it[1]>0 && it[col]>bestVal){bestVal=it[col];best=i;} });
+      if(best<0||bestVal<=0)return; // nessun alimento adatto da scalare
+      const it=items[best];
+      const newMacroVal=Math.max(0.1,it[col]+delta);
+      const factor=newMacroVal/it[col];
+      it[1]=it[1]*factor;
+      it[2]=it[2]*factor;
+      it[3]=it[3]*factor;
+      it[4]=it[4]*factor;
+      it[5]=it[5]*factor;
+      moved=true;
+    });
+    if(!moved)break;
+  }
+  items.forEach(it=>{
+    it[1]=r1(it[1]);it[2]=r1(it[2]);it[3]=r1(it[3]);it[4]=r1(it[4]);it[5]=Math.round(it[5]);
+  });
+}
+
+// ─── TARGET ─────────────────────────────────────────────────────────────────
+function saveTgt(){
+  const p=+document.getElementById("tP").value;
+  const f=+document.getElementById("tF").value;
+  const c=+document.getElementById("tC").value;
+  const k=+document.getElementById("tK").value;
+  const newT={p,f,c,k};
+  const plan=STATE[curDay];
+  let allItems=[];
+  plan.meals.forEach(m=>{ if(!m.free) m.items.forEach(it=>allItems.push(it)); });
+  autoAdjustAll(allItems,newT);
+  plan.targets=newT;
+  renderDay();
+}
+
+// ─── TARGET PER SINGOLO PASTO ────────────────────────────────────────────────
+function ensureMealTargets(mi){
+  const m=STATE[curDay].meals[mi];
+  if(!m.targets){
+    let mp=0,mf=0,mc=0,mk=0;
+    m.items.forEach(it=>{mp+=it[2];mf+=it[3];mc+=it[4];mk+=it[5];});
+    m.targets={p:r1(mp),f:r1(mf),c:r1(mc),k:Math.round(mk)};
+  }
+  return m.targets;
+}
+function saveMealTgt(mi){
+  const p=+document.getElementById("mtP").value;
+  const f=+document.getElementById("mtF").value;
+  const c=+document.getElementById("mtC").value;
+  const k=+document.getElementById("mtK").value;
+  const newT={p,f,c,k};
+  const m=STATE[curDay].meals[mi];
+  if(!m.free)autoAdjustAll(m.items,newT);
+  m.targets=newT;
+  renderDay();
+}
+
+// ─── AGGIUNGI ALIMENTO ───────────────────────────────────────────────────────
+function openAdd(mi){addCtx=mi;swapCtx=null;renderDay();setTimeout(()=>{const el=document.getElementById("addFoodSel");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);}
+function closeAdd(){addCtx=null;renderDay();}
+
+function addPanel(mi){
+  const opts=Object.keys(FOODS).sort().map(n=>`<option value="${n}">${n}</option>`).join("");
+  return `<div class="add-panel">
+    <p>➕ Aggiungi alimento a questo pasto</p>
+    <div class="add-row">
+      <div class="field wide"><label>Alimento</label>
+        <select id="addFoodSel" onchange="previewAdd()">${opts}</select>
+      </div>
+      <div class="field"><label>Quantità (g)</label>
+        <input type="number" inputmode="decimal" id="addQty" value="100" min="1" step="0.1" oninput="previewAdd()">
+      </div>
+    </div>
+    <div class="add-confirm" id="addPreview"></div>
+    <div class="btns"><button class="btn green btn-small" onclick="confirmAdd(${mi})">✓ Aggiungi</button><button class="btn btn2 btn-small" onclick="closeAdd()">Annulla</button></div>
+  </div>`;
+}
+
+function previewAdd(){
+  const name=document.getElementById("addFoodSel").value;
+  const g=+document.getElementById("addQty").value;
+  const F=FOODS[name];
+  if(!F||!g){document.getElementById("addPreview").innerHTML="";return;}
+  document.getElementById("addPreview").innerHTML=
+    `Pro ${r1(F.p*g/100)} · Gra ${r1(F.f*g/100)} · Car ${r1(F.c*g/100)} · Kcal ${Math.round(F.k*g/100)}`;
+}
+
+function confirmAdd(mi){
+  const name=document.getElementById("addFoodSel").value;
+  const g=+document.getElementById("addQty").value;
+  const F=FOODS[name];
+  if(!F||!g)return;
+  const it=[name,r1(g),r1(F.p*g/100),r1(F.f*g/100),r1(F.c*g/100),Math.round(F.k*g/100)];
+  // il target del pasto (e quello del giorno) restano invariati: l'alimento
+  // aggiunto deve "rientrare" dentro ai macro già previsti, non aggiungersi
+  // sopra. Gli altri alimenti del pasto si riducono in automatico (stesso
+  // meccanismo dello swap) per fare spazio ai macro del nuovo alimento,
+  // che però non viene mai toccato/ridotto lui stesso (protect).
+  const mtgt=ensureMealTargets(mi);
+  const m=STATE[curDay].meals[mi];
+  m.items.push(it);
+  autoAdjustAll(m.items,mtgt,it);
+  addCtx=null;renderDay();
+}
+
+// ─── RIMUOVI ALIMENTO ────────────────────────────────────────────────────────
+function delItem(mi,ii){
+  // nota: window.confirm() non funziona dentro l'iframe sandbox dell'artifact,
+  // quindi l'eliminazione avviene subito al clic (niente popup di conferma).
+  STATE[curDay].meals[mi].items.splice(ii,1);
+  swapCtx=null;addCtx=null;renderDay();
+}
+
+// ─── SOSTITUZIONE ────────────────────────────────────────────────────────────
+function openSwap(mi,ii){swapCtx={mi,ii};addCtx=null;renderDay();setTimeout(()=>{const el=document.getElementById("swFood");if(el){el.scrollIntoView({behavior:"smooth",block:"center"});calcSwap(mi,ii);}},50);}
+function closeSwap(){swapCtx=null;renderDay();}
+
+function swapPanel(mi,ii){
+  const it=STATE[curDay].meals[mi].items[ii];
+  const def=dom(it);
+  const opts=Object.keys(FOODS).sort().map(n=>`<option value="${n}">${n}</option>`).join("");
+  return `<div class="panel">
+    <b>Sostituisci: ${it[0]} (${r1(it[1])} g)</b>
+    <label>Sostituisci con</label>
+    <select id="swFood" onchange="calcSwap(${mi},${ii})">${opts}</select>
+    <label>Mantieni invariato</label>
+    <select id="swMacro" onchange="calcSwap(${mi},${ii})">
+      <option value="C" ${def==="C"?"selected":""}>Carboidrati</option>
+      <option value="P" ${def==="P"?"selected":""}>Proteine</option>
+      <option value="F" ${def==="F"?"selected":""}>Grassi</option>
+    </select>
+    <div class="res" id="swRes"></div>
+    <div class="btns"><button class="btn" onclick="applySwap(${mi},${ii})">✓ Applica</button><button class="btn btn2" onclick="closeSwap()">Annulla</button></div>
+  </div>`;
+}
+
+function calcSwap(mi,ii){
+  const it=STATE[curDay].meals[mi].items[ii];
+  const name=document.getElementById("swFood").value;
+  const macro=document.getElementById("swMacro").value;
+  const idx={P:"p",F:"f",C:"c"}[macro];
+  const label={P:"proteine",F:"grassi",C:"carboidrati"}[macro];
+  const src={P:it[2],F:it[3],C:it[4]}[macro];
+  const F=FOODS[name];
+  const res=document.getElementById("swRes");
+  if(!F||F[idx]<=0){res.innerHTML=`<span class="err-msg">${name} non contiene ${label}. Scegli un altro alimento o macro.</span>`;return;}
+  const g=src/F[idx]*100;
+  res.innerHTML=`<div>Grammi: <span class="big">${r1(g)} g</span> di ${name}</div>
+    <div>Pro ${r1(F.p*g/100)} · Gra ${r1(F.f*g/100)} · Car ${r1(F.c*g/100)} · Kcal ${Math.round(F.k*g/100)}</div>
+    <div class="note">Originale: ${r1(it[2])} Pro · ${r1(it[3])} Gra · ${r1(it[4])} Car · ${Math.round(it[5])} Kcal. ${label.charAt(0).toUpperCase()+label.slice(1)} pareggiati.</div>`;
+}
+
+function applySwap(mi,ii){
+  const it=STATE[curDay].meals[mi].items[ii];
+  const name=document.getElementById("swFood").value;
+  const macro=document.getElementById("swMacro").value;
+  const idx={P:"p",F:"f",C:"c"}[macro];
+  const src={P:it[2],F:it[3],C:it[4]}[macro];
+  const F=FOODS[name];
+  if(!F||F[idx]<=0)return;
+  const g=src/F[idx]*100;
+  const m=STATE[curDay].meals[mi];
+  // target del pasto "congelato" PRIMA della sostituzione: se non è ancora
+  // stato impostato a mano, equivale al totale attuale del pasto (quindi
+  // comprende i macro che l'alimento sostituito stava fornendo).
+  const mtgt={...ensureMealTargets(mi)};
+  m.items[ii]=[name,r1(g),r1(F.p*g/100),r1(F.f*g/100),r1(F.c*g/100),Math.round(F.k*g/100)];
+  // il macro scelto resta pareggiato per definizione; per gli altri due macro
+  // il nuovo alimento può darne di più o di meno di quello sostituito: qui
+  // la differenza viene compensata cambiando la quantità dell'alimento del
+  // pasto che di quel macro ne contiene più di tutti (es. avena per i carbo).
+  autoAdjustAll(m.items,mtgt);
+  swapCtx=null;renderDay();
+}
+
+// ─── DATABASE PERSONALIZZATO ─────────────────────────────────────────────────
+let customFoods=[];
+try{customFoods=JSON.parse(localStorage.getItem('customFoods')||'[]');}catch(e){}
+// Carica subito nel FOODS quelli già salvati
+customFoods.forEach(f=>{if(!FOODS[f.name])FOODS[f.name]={p:f.p,f:f.f,c:f.c,k:f.k};});
+
+function saveCustomFood(){
+  // trim + confronto case-insensitive: evita doppioni invisibili come
+  // "Pasta integrale " (spazio finale) o "pasta integrale" (minuscolo)
+  // che a video sembrano identici a un alimento già esistente.
+  const name=document.getElementById('dbName').value.trim().replace(/\s+/g,' ');
+  const p=parseFloat(document.getElementById('dbP').value)||0;
+  const f=parseFloat(document.getElementById('dbF').value)||0;
+  const c=parseFloat(document.getElementById('dbC').value)||0;
+  const kRaw=document.getElementById('dbK').value;
+  let k=kRaw===''||+kRaw===0 ? Math.round(p*4+f*9+c*4) : +kRaw;
+  const msg=document.getElementById('dbMsg');
+  if(!name){msg.innerHTML='<p style="color:var(--err);font-size:.8rem;margin-top:6px">⚠️ Inserisci il nome dell\'alimento.</p>';return;}
+  const dup=Object.keys(FOODS).find(k2=>k2.trim().toLowerCase()===name.toLowerCase());
+  if(dup){msg.innerHTML=`<p style="color:var(--warn);font-size:.8rem;margin-top:6px">⚠️ "${dup}" è già presente nel database.</p>`;return;}
+  if(p===0&&f===0&&c===0){msg.innerHTML='<p style="color:var(--warn);font-size:.8rem;margin-top:6px">⚠️ Inserisci almeno un macro (proteine, grassi o carbo).</p>';return;}
+  // Salva
+  FOODS[name]={p,f,c,k};
+  customFoods.push({name,p,f,c,k});
+  try{localStorage.setItem('customFoods',JSON.stringify(customFoods));}catch(e){}
+  msg.innerHTML=`<p style="color:var(--off);font-size:.8rem;margin-top:6px">✅ "${name}" aggiunto! Ora puoi usarlo in tutti i pasti e nelle sostituzioni.</p>`;
+  // Reset form
+  document.getElementById('dbName').value='';
+  document.getElementById('dbP').value='0';
+  document.getElementById('dbF').value='0';
+  document.getElementById('dbC').value='0';
+  document.getElementById('dbK').value='';
+  renderCustomList();
+  // Riapre i pannelli con la nuova lista
+  if(addCtx!==null||swapCtx)renderDay();
+  // Pulisce il messaggio dopo 4s
+  setTimeout(()=>{const m=document.getElementById('dbMsg');if(m)m.innerHTML='';},4000);
+}
+
+function deleteCustomFood(name){
+  customFoods=customFoods.filter(f=>f.name!==name);
+  delete FOODS[name];
+  try{localStorage.setItem('customFoods',JSON.stringify(customFoods));}catch(e){}
+  renderCustomList();
+}
+
+function renderCustomList(){
+  const el=document.getElementById('customList');
+  const cnt=document.getElementById('dbCount');
+  if(cnt) cnt.textContent=`▸ Alimenti aggiunti da te (${customFoods.length})`;
+  if(!el)return;
+  if(customFoods.length===0){
+    el.innerHTML='<p class="db-empty">Nessun alimento aggiunto ancora.</p>';return;
+  }
+  el.innerHTML='<table><tr><th style="text-align:left">Nome</th><th>Pro</th><th>Gra</th><th>Car</th><th>Kcal</th><th></th></tr>'+
+    customFoods.map(f=>`<tr>
+      <td>${f.name}</td><td>${f.p}</td><td>${f.f}</td><td>${f.c}</td><td>${f.k}</td>
+      <td><button class="del-btn" onclick="deleteCustomFood('${f.name.replace(/'/g,"\\'")}')">✕</button></td>
+    </tr>`).join('')+'</table>';
+}
+
+// ─── RIPRISTINA ──────────────────────────────────────────────────────────────
+function resetDay(){
+  STATE[curDay]=JSON.parse(JSON.stringify(PLANS[curDay]));
+  swapCtx=null;addCtx=null;editTargets=false;editMealIdx=null;renderDay();
+}
+
+document.getElementById("mealStartInput").value=fmtTime(mealStartMin);
+renderBtns();
+renderDay();
+renderCustomList();
 </script>
 </body>
 </html>
