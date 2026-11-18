@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sostituzioni Dieta</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#ffffff;--text:#1a1d24;--muted:#5a6270;--accent:#4f7cff;--border:#e1e4e9;--good:#2e7d32;--warn:#b26a00;--err:#c62828;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--text:#eef0f3;--muted:#9aa3af;--accent:#6d93ff;--border:#2a2e38;--good:#66bb6a;--warn:#e0a94d;--err:#ef5350;color-scheme:dark;}
+}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--text:#eef0f3;--muted:#9aa3af;--accent:#6d93ff;--border:#2a2e38;--good:#66bb6a;--warn:#e0a94d;--err:#ef5350;color-scheme:dark;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:16px;}
+h1{font-size:1.25rem;margin:0 0 4px;}
+p.sub{color:var(--muted);margin:0 0 16px;font-size:.82rem;line-height:1.4;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+label{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 4px;}
+input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;}
+.row{display:flex;gap:8px;}
+.row>div{flex:1;}
+button{width:100%;margin-top:14px;padding:12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:1rem;font-weight:600;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px;}
+td,th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:right;}
+td:first-child,th:first-child{text-align:left;}
+.big{font-size:1.5rem;font-weight:700;color:var(--accent);}
+.match{color:var(--good);font-weight:700;}
+.err{color:var(--err);font-size:.85rem;margin-top:8px;}
+details summary{cursor:pointer;color:var(--muted);font-size:.82rem;padding:4px 0;}
+.foodlist{max-height:220px;overflow:auto;}
+.note{font-size:.78rem;color:var(--muted);margin-top:8px;line-height:1.4;}
+</style>
+</head>
+<body>
+<h1>⚖️ Sostituzioni Dieta</h1>
+<p class="sub">Inserisci l'alimento da sostituire e quello che vuoi mangiare: calcolo i grammi esatti mantenendo invariato il macro scelto.</p>
+
+<div class="card">
+  <label>Alimento da sostituire</label>
+  <input list="foods" id="foodA" placeholder="es. Gallette di riso" autocomplete="off">
+  <label>Quantità (g)</label>
+  <input type="number" inputmode="decimal" id="qtyA" value="100" min="0" step="0.1">
+  <label>Sostituiscilo con</label>
+  <input list="foods" id="foodB" placeholder="es. Avena" autocomplete="off">
+  <label>Mantieni invariato</label>
+  <select id="macro">
+    <option value="C">Carboidrati</option>
+    <option value="P">Proteine</option>
+    <option value="F">Grassi</option>
+  </select>
+  <datalist id="foods"></datalist>
+  <button onclick="calc()">Calcola</button>
+  <div id="result"></div>
+</div>
+
+<div class="card">
+  <details>
+    <summary>+ Aggiungi un alimento al database</summary>
+    <label>Nome</label><input id="cName" placeholder="es. Fiocchi di quinoa">
+    <div class="row">
+      <div><label>Pro /100g</label><input type="number" inputmode="decimal" id="cP" value="0" step="0.1"></div>
+      <div><label>Gra /100g</label><input type="number" inputmode="decimal" id="cF" value="0" step="0.1"></div>
+      <div><label>Car /100g</label><input type="number" inputmode="decimal" id="cC" value="0" step="0.1"></div>
+    </div>
+    <button onclick="addFood()">Salva</button>
+    <p class="note">Resta salvato su questo dispositivo/browser per le prossime volte.</p>
+  </details>
+</div>
+
+<div class="card">
+  <details>
+    <summary>Vedi database alimenti (valori per 100g)</summary>
+    <div class="foodlist"><table id="dbTable"><thead><tr><th>Alimento</th><th>Pro (g)</th><th>Gra (g)</th><th>Car (g)</th><th>Kcal</th></tr></thead><tbody></tbody></table></div>
+  </details>
+</div>
+
+<script>
+const DB=[["Avena",14,7,60,376,"C"],["Uovo intero",13,11,1,156,"P"],["Albume",11,0,0,44,"P"],
+["Noci di pecan",9,72,4,690,"F"],["Mirtilli",0.7,0.3,14.5,57,"C"],["Whey isolate",90,1,3,380,"P"],
+["Burro di arachidi",26,49,12,590,"F"],["Riso",7,1,80,360,"C"],["Riso soffiato",7,1,84.5,375,"C"],
+["Tonno fresco",23,1.2,0,105,"P"],["Verdure",2,0,5,28,"C"],["Olio EVO",0,100,0,900,"F"],
+["Pane Azzimo",11,0.9,80,375,"C"],["Patate classiche (crude)",2,0.1,17,77,"C"],
+["Carne macinata magra di vitello",21,4.5,0,125,"P"],["Gallette di riso",8,1,81,377,"C"],
+["Mandorle",21,50,22,579,"F"],["Noci normali",15,65,14,654,"F"],["Anacardi",18,44,30,553,"F"],
+["Fette Wasa (Integrali)",11,2,60,320,"C"],["Pane Integrale/Segale",9,3,45,240,"C"],
+["Tonno in vetro al naturale",25,0.5,0,108,"P"],["Merluzzo congelato",14.4,0.8,0,64,"P"],
+["Nasello congelato",15,0.8,0,68,"P"],["Cuori di filetto di Platessa congelati",13,0.5,0,58,"P"],
+["Calamari/Seppie fresche",15,1,0.5,70,"P"],["Pesce spada fresco",20,4,0,121,"P"],
+["Gamberetti sgusciati congelati",16,0.5,0,70,"P"],["Polpo fresco",10.6,1,0.5,53,"P"],
+["Alici fresche",20,4.65,0,122,"P"],["Sgombro fresco",20,13,0,197,"P"],
+["Fichi freschi",1,0.3,19,75,"C"],["Prugne",0.7,0.2,11.5,46,"C"],["Fragole",0.8,0.3,5.3,27,"C"],
+["Pesche",0.8,0.2,9.5,39,"C"],["Melone",0.6,0.2,7.4,33,"C"],["Anguria",0.6,0.2,3.7,19,"C"],
+["Mango",0.6,0.3,15,60,"C"],["Pere",0.4,0.1,15,57,"C"],["Mele",0.3,0.2,13.8,52,"C"],
+["Kiwi",1.1,0.5,14.6,61,"C"],["Arance",0.9,0.1,11.8,47,"C"],["Yogurt greco 0%",10.3,0,4,57,"P"],
+["Pasta/Pasta di semola",13,1.5,71,352,"C"],["Cous cous",13,1.5,72,357,"C"],
+["Tagliata di Entrecote",20,14,0,206,"P"],["Crema di riso",6,1,80,360,"C"],
+["Crema di Avena",14,7,60,376,"C"],["Banana",1,0.3,23,89,"C"],["Ciclodestrine",0,0,100,400,"C"],
+["Petto di pollo",23,1,0,100,"P"],["Polenta (farina di mais)",8,1,75,351,"C"],
+["Fettine di vitello magro",20.7,2,0,107,"P"],["Petto di tacchino",24,1.2,0,107,"P"],
+["Fesa di tacchino a fette",24,1.2,1,110,"P"],["Tagliata di pollo (Lidl)",23,1.5,1,109,"P"],
+["Fesa di bovino (Carpaccio)",22,2,0,108,"P"],["Salmone fresco",20,13,0,208,"P"]];
+let custom=[];
+try{custom=JSON.parse(localStorage.getItem('customFoods')||'[]');}catch(e){custom=[];}
+function allFoods(){return DB.concat(custom);}
+function findFood(n){
+  n=(n||'').trim().toLowerCase();
+  if(!n)return null;
+  let f=allFoods().find(x=>x[0].toLowerCase()===n);
+  if(!f)f=allFoods().find(x=>x[0].toLowerCase().includes(n));
+  return f;
+}
+function renderList(){
+  const dl=document.getElementById('foods');dl.innerHTML='';
+  allFoods().forEach(f=>{const o=document.createElement('option');o.value=f[0];dl.appendChild(o);});
+  const tb=document.querySelector('#dbTable tbody');tb.innerHTML='';
+  allFoods().forEach(f=>{tb.innerHTML+=`<tr><td>${f[0]}</td><td>${f[1]}</td><td>${f[2]}</td><td>${f[3]}</td><td>${f[4]}</td></tr>`;});
+}
+function addFood(){
+  const n=document.getElementById('cName').value.trim();
+  if(!n)return;
+  const p=+document.getElementById('cP').value,f=+document.getElementById('cF').value,c=+document.getElementById('cC').value;
+  const kcal=Math.round(p*4+f*9+c*4);
+  custom.push([n,p,f,c,kcal,"C"]);
+  try{localStorage.setItem('customFoods',JSON.stringify(custom));}catch(e){}
+  renderList();
+  document.getElementById('cName').value='';
+}
+function calc(){
+  const res=document.getElementById('result');
+  const A=findFood(document.getElementById('foodA').value);
+  const B=findFood(document.getElementById('foodB').value);
+  const qtyA=+document.getElementById('qtyA').value;
+  const macro=document.getElementById('macro').value;
+  if(!A||!B||!qtyA){res.innerHTML='<p class="err">Seleziona entrambi gli alimenti (dalla lista) e una quantità valida.</p>';return;}
+  const idx={P:1,F:2,C:3}[macro];
+  const label={P:'proteine',F:'grassi',C:'carboidrati'}[macro];
+  const amountA=A[idx]/100*qtyA;
+  if(B[idx]<=0){res.innerHTML=`<p class="err">${B[0]} non contiene ${label}: impossibile pareggiare su questo macro.</p>`;return;}
+  const qtyB=amountA/(B[idx]/100);
+  const pA=A[1]/100*qtyA,fA=A[2]/100*qtyA,cA=A[3]/100*qtyA,kA=A[4]/100*qtyA;
+  const pB=B[1]/100*qtyB,fB=B[2]/100*qtyB,cB=B[3]/100*qtyB,kB=B[4]/100*qtyB;
+  const d=(x,y)=>{let v=y-x;if(Math.abs(v)<0.05)v=0;return (v>=0?'+':'')+v.toFixed(1);};
+  res.innerHTML=`<p style="margin-top:14px">Equivalente a <span class="big">${qtyB.toFixed(1)} g</span> di ${B[0]}</p>
+  <table><tr><th></th><th>Pro</th><th>Gra</th><th>Car</th><th>Kcal</th></tr>
+  <tr><td>${qtyA} g ${A[0]}</td><td>${pA.toFixed(1)}</td><td>${fA.toFixed(1)}</td><td>${cA.toFixed(1)}</td><td>${kA.toFixed(0)}</td></tr>
+  <tr><td>${qtyB.toFixed(1)} g ${B[0]}</td><td class="${macro==='P'?'match':''}">${pB.toFixed(1)}</td><td class="${macro==='F'?'match':''}">${fB.toFixed(1)}</td><td class="${macro==='C'?'match':''}">${cB.toFixed(1)}</td><td>${kB.toFixed(0)}</td></tr>
+  <tr><td>Differenza</td><td>${d(pA,pB)}</td><td>${d(fA,fB)}</td><td>${d(cA,cB)}</td><td>${d(kA,kB)}</td></tr></table>
+  <p class="note">Macro mantenuto: ${label} (uguale per definizione). Le altre colonne mostrano lo scarto reale, utile per capire se serve un piccolo aggiustamento altrove.</p>`;
+}
+document.getElementById('foodA').addEventListener('input',()=>{
+  const A=findFood(document.getElementById('foodA').value);
+  if(A)document.getElementById('macro').value=A[5]||'C';
+});
+renderList();
+</script>
+</body>
+</html>
