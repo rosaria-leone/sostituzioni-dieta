@@ -595,7 +595,7 @@ function autoAdjustAll(items,target,protect,noIncrease){
   // macro (es. aggiungere proteine tocca anche un filo di grassi). Ripetendo
   // la correzione e arrotondando SOLO alla fine, il pasto torna esattamente
   // sul target invece di lasciare "mancano 0.x g" residui.
-  // "protect": riga da escludere dalla scelta come "leva" (es. l'alimento appena
+  // "protect": righe (array) da escludere dalla scelta come "leva" (es. gli alimenti appena
   // aggiunto) — resta comunque nel conteggio dei totali, ma non viene lei stessa
   // ridotta per fare spazio a se stessa.
   for(let pass=0;pass<4;pass++){
@@ -605,12 +605,13 @@ function autoAdjustAll(items,target,protect,noIncrease){
       let curVal=0; items.forEach(it=>curVal+=it[col]);
       const delta=target[key]-curVal;
       if(Math.abs(delta)<0.03)return; // già in target
-      // "noIncrease": gli altri alimenti possono solo scendere (fare spazio),
-      // mai salire a coprire un buco: quello lo riempie l'utente con ciò che aggiunge
-      if(noIncrease&&delta>0)return;
+      // "noIncrease" {p,f,c}: per questi macro gli altri alimenti possono solo
+      // scendere (fare spazio), mai salire a coprire un buco: quello lo
+      // riempiono gli alimenti che aggiungi tu
+      if(noIncrease&&noIncrease[key]&&delta>0)return;
       // trova, tra gli alimenti modificabili del pasto/giorno, quello col valore più alto per questo macro
       let best=-1,bestVal=-1;
-      items.forEach((it,i)=>{ if(it!==protect && it[1]>0 && it[col]/it[1]*100>=SOURCE_MIN[key] && it[col]>bestVal){bestVal=it[col];best=i;} });
+      items.forEach((it,i)=>{ if(!(protect&&protect.includes(it)) && it[1]>0 && it[col]/it[1]*100>=SOURCE_MIN[key] && it[col]>bestVal){bestVal=it[col];best=i;} });
       if(best<0||bestVal<=0)return; // nessun alimento adatto da scalare
       const it=items[best];
       const newMacroVal=Math.max(0.1,it[col]+delta);
@@ -690,11 +691,16 @@ function saveMealTgt(mi){
 }
 
 // ─── AGGIUNGI ALIMENTO ───────────────────────────────────────────────────────
-let addFillPct=null; // % del macro mancante da coprire con l'alimento scelto (null = grammi a mano)
-function openAdd(mi){addCtx=mi;addFillPct=null;swapCtx=null;renderDay();setTimeout(()=>{const el=document.getElementById("addFoodSel");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});previewAdd();},50);}
+// Quantità automatica: se al pasto mancano dei macro (es. hai tolto il riso),
+// gli alimenti che aggiungi diventano "riempitivi" di quel macro e il macro
+// mancante si divide in parti uguali tra tutti loro. Ogni nuovo alimento
+// ricalcola anche quelli aggiunti prima (riso tolto → patate + pasta = metà carbo ciascuno).
+// I riempitivi sono segnati con it[6] = macro che coprono ("p","f","c").
+let addAuto=true; // false quando scrivi tu i grammi a mano
+function openAdd(mi){addCtx=mi;addAuto=true;swapCtx=null;renderDay();setTimeout(()=>{const el=document.getElementById("addFoodSel");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});previewAdd();},50);}
 function closeAdd(){addCtx=null;renderDay();}
 
-// macro che mancano al pasto rispetto al suo target (es. dopo aver rimosso il riso)
+// macro che mancano al pasto rispetto al suo target
 function mealDeficit(mi){
   const m=STATE[curDay].meals[mi],t=ensureMealTargets(mi);
   const d={p:t.p,f:t.f,c:t.c};
@@ -702,23 +708,25 @@ function mealDeficit(mi){
   ["p","f","c"].forEach(k=>d[k]=d[k]>0.5?r1(d[k]):0);
   return d;
 }
-// macro che l'alimento scelto deve coprire: il suo principale, se manca;
-// altrimenti quello mancante di cui l'alimento è più ricco
-function fillMacro(F,d){
-  const main=dom([null,100,F.p,F.f,F.c]);
-  const k={P:"p",F:"f",C:"c"}[main];
-  if(d[k]>0)return k;
-  let best=null;["p","f","c"].forEach(x=>{if(d[x]>0&&F[x]>0&&(!best||F[x]>F[best]))best=x;});
+// macro che l'alimento deve coprire: il suo principale, se manca o se c'è
+// già un gruppo di alimenti aggiunti per coprirlo (allora entra nel gruppo e
+// la quota si divide); altrimenti quello mancante di cui è una vera fonte
+function fillMacro(F,d,mi){
+  const main={P:"p",F:"f",C:"c"}[dom([null,100,F.p,F.f,F.c])];
+  if(d[main]>0||STATE[curDay].meals[mi].items.some(it=>it[6]===main))return main;
+  let best=null;["p","f","c"].forEach(x=>{if(d[x]>0&&F[x]>=SOURCE_MIN[x]&&(!best||F[x]>F[best]))best=x;});
   return best;
 }
-function setFill(mi,pct){
-  addFillPct=pct;
-  const F=FOODS[document.getElementById("addFoodSel").value];
-  const d=mealDeficit(mi);
-  const k=F&&fillMacro(F,d);
-  if(k)document.getElementById("addQty").value=r1(d[k]*pct/100/F[k]*100);
-  previewAdd();
+// quota del macro k per ciascun riempitivo, contando anche quello che stai aggiungendo
+function fillShare(mi,k){
+  const m=STATE[curDay].meals[mi],t=ensureMealTargets(mi);
+  const col={p:2,f:3,c:4}[k];
+  let rest=0,n=1;
+  m.items.forEach(it=>{if(it[6]===k)n++;else rest+=it[col];});
+  return {share:Math.max(0,t[k]-rest)/n,n};
 }
+const LBL={p:"proteine",f:"grassi",c:"carbo"};
+const mkItem=(name,g,fill)=>{const F=FOODS[name];const it=[name,r1(g),r1(F.p*g/100),r1(F.f*g/100),r1(F.c*g/100),Math.round(F.k*g/100)];if(fill)it[6]=fill;return it;};
 
 function addPanel(mi){
   const opts=Object.keys(FOODS).sort().map(n=>`<option value="${n}">${n}</option>`).join("");
@@ -726,14 +734,13 @@ function addPanel(mi){
   const miss=[["p","Pro"],["f","Gra"],["c","Car"]].filter(([k])=>d[k]>0).map(([k,l])=>`${l} ${d[k]} g`).join(" · ");
   return `<div class="add-panel">
     <p>➕ Aggiungi alimento a questo pasto</p>
-    ${miss?`<div class="note" style="margin:0 0 8px">Mancano al pasto: <b>${miss}</b>. Scegli l'alimento e quanto del buco deve coprire: per dividerlo tra due alimenti, metti il primo a <b>Metà</b> e il secondo a <b>Tutto</b>.</div>
-    <div class="btns" style="margin:0 0 8px"><button class="btn btn-soft btn-small" onclick="setFill(${mi},100)">Copri tutto</button><button class="btn btn-soft btn-small" onclick="setFill(${mi},50)">Copri metà</button></div>`:""}
+    ${miss?`<div class="note" style="margin:0 0 8px">Mancano al pasto: <b>${miss}</b>. La quantità la calcolo io: se aggiungi più alimenti, divido quello che manca in parti uguali tra loro.</div>`:""}
     <div class="add-row">
       <div class="field wide"><label>Alimento</label>
-        <select id="addFoodSel" onchange="addFillPct!==null?setFill(${mi},addFillPct):previewAdd()">${opts}</select>
+        <select id="addFoodSel" onchange="previewAdd()">${opts}</select>
       </div>
       <div class="field"><label>Quantità (g)</label>
-        <input type="number" inputmode="decimal" id="addQty" value="100" min="1" step="0.1" oninput="addFillPct=null;previewAdd()">
+        <input type="number" inputmode="decimal" id="addQty" value="100" min="1" step="0.1" oninput="addAuto=false;previewAdd()">
       </div>
     </div>
     <div class="add-confirm" id="addPreview"></div>
@@ -742,31 +749,55 @@ function addPanel(mi){
 }
 
 function previewAdd(){
+  const mi=addCtx;
   const name=document.getElementById("addFoodSel").value;
-  const g=+document.getElementById("addQty").value;
   const F=FOODS[name];
-  if(!F||!g){document.getElementById("addPreview").innerHTML="";return;}
-  document.getElementById("addPreview").innerHTML=
-    `Pro ${r1(F.p*g/100)} · Gra ${r1(F.f*g/100)} · Car ${r1(F.c*g/100)} · Kcal ${Math.round(F.k*g/100)}`;
+  const prev=document.getElementById("addPreview");
+  const k=F&&mi!==null?fillMacro(F,mealDeficit(mi),mi):null;
+  let info="";
+  if(addAuto&&k){
+    const {share,n}=fillShare(mi,k);
+    document.getElementById("addQty").value=r1(share/F[k]*100);
+    info=n>1?`<div class="note" style="margin:4px 0 0">${n} alimenti si dividono i ${LBL[k]}: ${r1(share)} g ciascuno. Ricalcolo anche le quantità di quelli aggiunti prima.</div>`
+            :`<div class="note" style="margin:4px 0 0">Copre i ${r1(share)} g di ${LBL[k]} mancanti. Se aggiungi un altro alimento, li divido a metà.</div>`;
+  }else if(!addAuto&&k){
+    info=`<div class="note" style="margin:4px 0 0">Quantità scelta da te. <a href="#" onclick="addAuto=true;previewAdd();return false">↺ Torna alla quantità automatica</a></div>`;
+  }
+  const g=+document.getElementById("addQty").value;
+  if(!F||!g){prev.innerHTML="";return;}
+  prev.innerHTML=`Pro ${r1(F.p*g/100)} · Gra ${r1(F.f*g/100)} · Car ${r1(F.c*g/100)} · Kcal ${Math.round(F.k*g/100)}`+info;
 }
 
 function confirmAdd(mi){
   const name=document.getElementById("addFoodSel").value;
-  const g=+document.getElementById("addQty").value;
   const F=FOODS[name];
-  if(!F||!g)return;
-  const it=[name,r1(g),r1(F.p*g/100),r1(F.f*g/100),r1(F.c*g/100),Math.round(F.k*g/100)];
-  // il target del pasto (e quello del giorno) restano invariati: l'alimento
-  // aggiunto deve "rientrare" dentro ai macro già previsti, non aggiungersi
-  // sopra. Gli altri alimenti del pasto si riducono in automatico (stesso
-  // meccanismo dello swap) per fare spazio ai macro del nuovo alimento,
-  // che però non viene mai toccato/ridotto lui stesso (protect).
-  // Gli altri alimenti però non vengono mai aumentati (noIncrease): se dopo una
-  // rimozione manca qualcosa, il buco lo coprono gli alimenti che aggiungi tu.
-  const mtgt=ensureMealTargets(mi);
   const m=STATE[curDay].meals[mi];
-  m.items.push(it);
-  autoAdjustAll(m.items,mtgt,it,true);
+  const mtgt=ensureMealTargets(mi);
+  const d=mealDeficit(mi);
+  // macro già mancanti prima di aggiungere: gli altri alimenti non salgono mai
+  // a coprirli (es. verdure gonfiate per coprire i carbo del riso tolto)
+  const gaps={};["p","f","c"].forEach(x=>{if(d[x]>0)gaps[x]=true;});
+  const k=F?fillMacro(F,d,mi):null;
+  if(addAuto&&k){
+    // aggiunta automatica: tutti i riempitivi di k ricevono la stessa quota di k
+    const {share}=fillShare(mi,k);
+    m.items.push(mkItem(name,share/F[k]*100,k));
+    m.items.forEach((it,i)=>{
+      const G=FOODS[it[0]];
+      if(it[6]===k&&G&&G[k]>0)m.items[i]=mkItem(it[0],share/G[k]*100,k);
+    });
+    // gli altri macro portati dai riempitivi (es. proteine della pasta) si
+    // compensano sugli altri alimenti; i riempitivi restano fermi
+    autoAdjustAll(m.items,mtgt,m.items.filter(it=>it[6]===k),gaps);
+  }else{
+    const g=+document.getElementById("addQty").value;
+    if(!F||!g)return;
+    // grammi scelti a mano: l'alimento entra così com'è e gli altri del pasto
+    // si riducono per fargli spazio (il target del pasto resta invariato)
+    const it=mkItem(name,g);
+    m.items.push(it);
+    autoAdjustAll(m.items,mtgt,[it],gaps);
+  }
   addCtx=null;renderDay();
 }
 
