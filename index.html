@@ -309,64 +309,64 @@ td:first-child,th:first-child{text-align:left;font-weight:600;}
 <script>
 // ─── PIANI BASE (dai PDF) ───────────────────────────────────────────────────
 const PLANS = {
-"Lunedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:445,k:2938},meals:[
- {t:"Colazione 08:00",items:[["Avena",24,3.3,1.7,14.2,89],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",12.1,1.0,8.6,0.4,82],["Mirtilli",83,0.6,0.2,12.0,47]]},
+"Lunedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:445,k:2935},meals:[
+ {t:"Colazione 08:00",items:[["Avena",24,3.3,1.7,14.2,89],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",12.1,1,8.6,0.4,82],["Mirtilli",83,0.6,0.2,12,47]]},
  {t:"Spuntino pre-WO 11:00",items:[["Crema di riso",59,3.5,0.6,47.2,212],["Whey isolate",24,21.6,0.2,0.7,92],["Banana",86,0.9,0.3,19.8,76],["Olio EVO",3.9,0,3.9,0,35]]},
  {t:"Intra-WO 12:00",items:[["Ciclodestrine",36,0,0,36.2,145]]},
- {t:"Pranzo post-WO 14:00",items:[["Patate classiche (crude)",923.4,18.4,1,156.9,711],["Petto di pollo",117.3,26.9,1.2,0,117],["Verdure",200,4,0,10,56]]},
- {t:"Merenda 17:00",items:[["Albume",140.7,15.5,0,0,62],["Crema di riso",90.3,5.4,0.9,72.2,324],["Burro di arachidi",8.8,2.3,4.4,1.1,53]]},
+ {t:"Pranzo post-WO 14:00",items:[["Patate classiche (crude)",923.4,18.4,1,156.9,711],["Petto di pollo",117.2,26.9,1.2,0,117],["Verdure",200,4,0,10,56]]},
+ {t:"Merenda 17:00",items:[["Albume",142.7,15.7,0,0,63],["Crema di riso",90.4,5.4,0.9,72.3,325],["Burro di arachidi",8,2.1,4,1,48]]},
  {t:"Cena 20:00",items:[["Riso",58,4.1,0.6,46.5,209],["Merluzzo congelato",212,30.6,1.7,0,136],["Verdure",200,4,0,10,56],["Olio EVO",12.8,0,12.8,0,115]]},
  {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",126,13,0,5,72],["Burro di arachidi",15.7,4.1,7.6,1.8,92],["Gallette di riso",19,1.5,0.2,15.1,70]]}
 ]},
-"Martedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:445,k:2952},meals:[
+"Martedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:445,k:2947},meals:[
  {t:"Colazione 08:00",items:[["Avena",23,3.2,1.6,13.9,87],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",12.4,1.1,8.9,0.5,85],["Mirtilli",84,0.6,0.3,12.1,48]]},
  {t:"Spuntino pre-WO 11:00",items:[["Crema di riso",60,3.6,0.6,47.9,215],["Whey isolate",21,18.8,0.2,0.6,80],["Banana",88,0.9,0.3,20.2,78],["Olio EVO",3.9,0,3.9,0,35]]},
  {t:"Intra-WO 12:00",items:[["Ciclodestrine",38,0,0,38,152]]},
- {t:"Pranzo post-WO 14:00",items:[["Cous cous",218,28.5,3.2,157.2,778],["Petto di pollo",100.8,23.1,1,0,100],["Verdure",200,4,0,10,56]]},
- {t:"Merenda 17:00",items:[["Albume",140.7,15.5,0,0,61],["Crema di riso",86.3,5.2,0.8,68.9,311],["Burro di arachidi",9,2.4,4.5,1.1,54]]},
+ {t:"Pranzo post-WO 14:00",items:[["Cous cous",218,28.5,3.2,157.2,778],["Petto di pollo",100.6,23.1,1,0,100],["Verdure",200,4,0,10,56]]},
+ {t:"Merenda 17:00",items:[["Albume",143.7,15.8,0,0,63],["Crema di riso",86.5,5.2,0.8,69,311],["Burro di arachidi",7.8,2.1,3.9,1,47]]},
  {t:"Cena 20:00",items:[["Riso",59,4.1,0.6,46.9,211],["Gamberetti sgusciati congelati",200,32,1,0,140],["Verdure",200,4,0,10,56],["Olio EVO",12.3,0,12.2,0,109]]},
  {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",123,12.6,0,4.9,70],["Burro di arachidi",14.3,3.6,6.8,1.6,83],["Gallette di riso",19,1.5,0.2,15.6,73]]}
 ]},
-"Mercoledì OFF":{type:"off",tag:"Riposo",targets:{p:175,f:80,c:320,k:2741},meals:[
- {t:"Colazione 08:00",items:[["Avena",43.6,6.3,3.2,26.6,167],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",81.8,9,0,0,36],["Noci di pecan",7.5,0.7,5.43,0.3,52],["Mirtilli",74,0.5,0.2,10.7,42]]},
- {t:"Spuntino 11:00",items:[["Yogurt greco 0%",108.6,11.2,0,4.3,62],["Avena",43.6,6.3,3.2,26.6,167],["Burro di arachidi",21.9,6.0,11.13,2.8,135]]},
- {t:"Pranzo 14:00",items:[["Riso",83.4,5.8,0.8,66.6,299],["Salmone fresco",93.8,18.7,12.2,0,195],["Verdure",200,4,0,10,56]]},
- {t:"Merenda 17:00",items:[["Albume",153.1,16.8,0,0,67],["Pane Azzimo",74.2,8.4,0.7,60,281],["Burro di arachidi",25.2,6.7,12.73,3.2,152]]},
- {t:"Cena 20:00",items:[["Polenta (farina di mais)",84,6.8,0.8,63.2,295],["Tagliata di pollo (Lidl)",175.1,40.2,2.6,1.8,191],["Verdure",200,4,0,10,56],["Olio EVO",9.4,0,9.93,0,89]]},
- {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",120.2,12.4,0,4.8,69],["Burro di arachidi",25.8,6.9,13.03,3.3,158],["Gallette di riso",40.5,3.2,0.4,32.8,153]]}
+"Mercoledì OFF":{type:"off",tag:"Riposo",targets:{p:175,f:80,c:320,k:2727},meals:[
+ {t:"Colazione 08:00",items:[["Avena",43.6,6.3,3.2,26.6,167],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",82.3,9,0,0,36],["Noci di pecan",7.5,0.7,5.43,0.3,52],["Mirtilli",74,0.5,0.2,10.7,42]]},
+ {t:"Spuntino 11:00",items:[["Yogurt greco 0%",107.1,11,0,4.3,61],["Avena",45,6.4,3.3,27.4,172],["Burro di arachidi",21.9,6,11.13,2.8,135]]},
+ {t:"Pranzo 14:00",items:[["Riso",83.4,5.8,0.8,66.6,299],["Salmone fresco",93.7,18.7,12.2,0,194],["Verdure",200,4,0,10,56]]},
+ {t:"Merenda 17:00",items:[["Albume",153.5,16.8,0,0,67],["Pane Azzimo",74.2,8.4,0.7,60,281],["Burro di arachidi",25.2,6.7,12.73,3.2,152]]},
+ {t:"Cena 20:00",items:[["Polenta (farina di mais)",84.1,6.8,0.8,63.2,295],["Tagliata di pollo (Lidl)",175.1,40.2,2.6,1.8,191],["Verdure",200,4,0,10,56],["Olio EVO",9.4,0,9.93,0,89]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",129.6,13.4,0,5.2,74],["Burro di arachidi",21.9,5.9,11.1,2.8,134],["Gallette di riso",41,3.3,0.4,33.2,155]]}
 ]},
-"Giovedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:445,k:2961},meals:[
- {t:"Colazione 08:00",items:[["Avena",23,3.2,1.6,13.6,85],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",10.7,1.0,7.7,0.4,73],["Mirtilli",83,0.6,0.2,12,47]]},
+"Giovedì ON":{type:"on",tag:"Allenamento 12:00",targets:{p:175,f:51,c:445,k:2957},meals:[
+ {t:"Colazione 08:00",items:[["Avena",23,3.2,1.6,13.6,85],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",100,11,0,0,44],["Noci di pecan",10.7,1,7.7,0.4,73],["Mirtilli",83,0.6,0.2,12,47]]},
  {t:"Spuntino pre-WO 11:00",items:[["Crema di riso",60,3.6,0.6,47.9,215],["Whey isolate",21,18.7,0.2,0.6,79],["Banana",88,0.9,0.3,20.2,78],["Olio EVO",3.9,0,3.9,0,35]]},
  {t:"Intra-WO 12:00",items:[["Ciclodestrine",38,0,0,37.7,151]]},
  {t:"Pranzo post-WO 14:00",items:[["Pasta di semola",216.8,28.2,3.3,153.7,763],["Petto di tacchino",109.9,26.4,1.4,0,118],["Verdure",200,4,0,10,56]]},
- {t:"Merenda 17:00",items:[["Albume",136.7,15,0,0,60],["Crema di riso",91.3,5.5,0.9,72.9,327],["Burro di arachidi",8.8,2.3,4.4,1.1,53]]},
+ {t:"Merenda 17:00",items:[["Albume",139.7,15.3,0,0,62],["Crema di riso",91.5,5.5,0.9,73.1,328],["Burro di arachidi",7.6,2,3.8,0.9,46]]},
  {t:"Cena 20:00",items:[["Polenta (farina di mais)",63,5.1,0.6,47.4,221],["Fettine di vitello magro",136,28.1,2.7,0,145],["Verdure",200,4,0,10,56],["Olio EVO",11.4,0,11.7,0,105]]},
  {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",123,12.6,0,4.9,70],["Burro di arachidi",13.5,3.4,6.5,1.6,78],["Gallette di riso",19,1.5,0.2,15.3,71]]}
 ]},
-"Venerdì OFF":{type:"off",tag:"Riposo",targets:{p:164,f:80,c:320,k:2686},meals:[
- {t:"Colazione 08:00",items:[["Avena",49.4,6.9,3.5,29.9,187],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",82.7,9.1,0,0,36],["Noci di pecan",7.1,0.7,5.13,0.3,49],["Mirtilli",79,0.6,0.2,11.5,45]]},
- {t:"Spuntino 11:00",items:[["Whey isolate",16.9,15.1,0.2,0.5,64],["Avena",49.5,6.9,3.5,29.8,186],["Burro di arachidi",21.9,5.6,10.63,2.7,128]]},
+"Venerdì OFF":{type:"off",tag:"Riposo",targets:{p:164,f:80,c:320,k:2665},meals:[
+ {t:"Colazione 08:00",items:[["Avena",49.4,6.9,3.5,29.9,187],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",82.5,9.1,0,0,36],["Noci di pecan",7.1,0.7,5.13,0.3,49],["Mirtilli",79,0.6,0.2,11.5,45]]},
+ {t:"Spuntino 11:00",items:[["Whey isolate",16.8,15.1,0.2,0.5,64],["Avena",49.6,6.9,3.5,29.9,186],["Burro di arachidi",21.9,5.6,10.63,2.7,128]]},
  {t:"Pranzo 14:00",items:[["Riso",83.3,5.8,0.8,66.9,301],["Tonno fresco",105.9,24.3,1.3,0,111],["Verdure",200,4,0,10,56],["Olio EVO",11.5,0,11.33,0,102]]},
- {t:"Merenda 17:00",items:[["Albume",121,13.3,0,0,54],["Pane Azzimo",83.8,9.1,0.8,66.7,312],["Burro di arachidi",26.1,6.7,12.63,3.2,154]]},
- {t:"Cena 20:00",items:[["Patate classiche (crude)",348.8,7,0.3,59.3,269],["Carne macinata magra di vitello",117.2,24.5,5.3,0,146],["Verdure",200,4,0,10,56],["Olio EVO",7.6,0,7.53,0,68]]},
- {t:"Pre-Nanna 23:00",items:[["Albume",142.7,15.7,0,0,63],["Burro di arachidi",27.0,6.9,13.03,3.3,157],["Gallette di riso",40.5,3.2,0.4,32.8,153]]}
+ {t:"Merenda 17:00",items:[["Albume",120.7,13.3,0,0,53],["Pane Azzimo",83.8,9.1,0.8,66.7,312],["Burro di arachidi",26.1,6.7,12.63,3.2,154]]},
+ {t:"Cena 20:00",items:[["Patate classiche (crude)",348.8,7,0.3,59.3,269],["Carne macinata magra di vitello",117.3,24.5,5.3,0,146],["Verdure",200,4,0,10,56],["Olio EVO",7.6,0,7.53,0,68]]},
+ {t:"Pre-Nanna 23:00",items:[["Albume",151.6,16.7,0,0,67],["Burro di arachidi",22.6,5.8,10.9,2.8,131],["Gallette di riso",41.1,3.3,0.4,33.3,155]]}
 ]},
-"Sabato ON":{type:"on",tag:"Allenamento 15:00 · sgarro serale",targets:{p:164,f:51,c:445,k:2894},meals:[
+"Sabato ON":{type:"on",tag:"Allenamento 15:00 · sgarro serale",targets:{p:164,f:51,c:445,k:2888},meals:[
  {t:"Colazione 08:00",items:[["Uovo intero",50,6.5,5.5,0.5,78],["Albume",120,13.2,0,0,53],["Avena",40,5.5,2.8,23.7,148]]},
  {t:"Spuntino 11:00",items:[["Yogurt greco 0%",156,16.1,0,6.2,89],["Olio EVO",5,0,5,0,45]]},
  {t:"Pranzo post-WO 13:30",items:[["Cous cous",153.9,23.1,2.7,111.1,551],["Petto di pollo",177.4,40.8,1.8,0,177],["Verdure",200,4,0,10,56]]},
  {t:"Intra-WO 15:00",items:[["Ciclodestrine",30,0,0,30,120]]},
- {t:"Merenda post-WO 17:00",items:[["Crema di riso",142.3,8.6,1.5,113.8,513],["Whey isolate",27.9,25.1,0.3,0.8,106],["Banana",113,1.1,0.3,26.1,101],["Olio EVO",3.2,0,3.2,0,29]]},
+ {t:"Merenda post-WO 17:00",items:[["Crema di riso",142.3,8.6,1.5,113.9,513],["Whey isolate",27.9,25.1,0.3,0.8,106],["Banana",113,1.1,0.3,26.1,101],["Olio EVO",2.5,0,2.5,0,23]]},
  {t:"Cena 20:00 - SGARRO",free:true,items:[["Pasto libero (sgarro)",0,35,28.6,125,897]]}
 ]},
-"Domenica OFF":{type:"off",tag:"Riposo · Entrecôte a cena",targets:{p:175,f:80,c:320,k:2714},meals:[
- {t:"Colazione 08:00",items:[["Avena",62.1,9,4.4,37.9,239],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",81.8,9,0,0,36],["Noci di pecan",5.9,0.6,4.23,0.2,40],["Mirtilli",78,0.5,0.2,11.2,44]]},
- {t:"Spuntino 11:00",items:[["Yogurt greco 0%",107.6,11.1,0,4.3,61],["Avena",62.4,8.6,4.4,37.3,234],["Burro di arachidi",19.9,5.3,9.93,2.5,119]]},
- {t:"Pranzo 14:00",items:[["Pasta di semola",93.4,12.1,1.4,67.9,328],["Carne macinata magra di vitello",103.9,21.8,4.7,0,129],["Verdure",200,4,0,10,56],["Olio EVO",6.4,0,7.13,0,64]]},
- {t:"Merenda 17:00",items:[["Albume",114.6,12.6,0,0,50],["Riso soffiato",79.4,5.6,0.8,67.1,298],["Burro di arachidi",25.3,6.7,12.63,3.1,152]]},
- {t:"Cena 20:00",items:[["Patate classiche (crude)",205.8,4.1,0.3,35,159],["Entrecôte",88.8,17.8,12.4,0,184],["Verdure",200,4,0,10,56]]},
- {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",111.3,11.5,0,4.5,64],["Burro di arachidi",26.1,6.9,13.03,3.2,156],["Gallette di riso",42.5,3.3,0.4,34.3,160]]}
+"Domenica OFF":{type:"off",tag:"Riposo · Entrecôte a cena",targets:{p:175,f:80,c:320,k:2705},meals:[
+ {t:"Colazione 08:00",items:[["Avena",62.1,9,4.4,37.9,239],["Uovo intero",50,6.5,5.5,0.5,78],["Albume",82.2,9,0,0,36],["Noci di pecan",5.9,0.6,4.23,0.2,40],["Mirtilli",78,0.5,0.2,11.2,44]]},
+ {t:"Spuntino 11:00",items:[["Yogurt greco 0%",105.6,10.9,0,4.2,60],["Avena",63.7,8.8,4.5,38.1,239],["Burro di arachidi",19.9,5.3,9.93,2.5,119]]},
+ {t:"Pranzo 14:00",items:[["Pasta di semola",93.4,12.1,1.4,67.9,328],["Carne macinata magra di vitello",104,21.8,4.7,0,129],["Verdure",200,4,0,10,56],["Olio EVO",6.4,0,7.13,0,64]]},
+ {t:"Merenda 17:00",items:[["Albume",114.7,12.6,0,0,50],["Riso soffiato",79.4,5.6,0.8,67.1,298],["Burro di arachidi",25.3,6.7,12.63,3.1,152]]},
+ {t:"Cena 20:00",items:[["Patate classiche (crude)",205.8,4.1,0.3,35,159],["Entrecôte",88.9,17.8,12.4,0,184],["Verdure",200,4,0,10,56]]},
+ {t:"Pre-Nanna 23:00",items:[["Yogurt greco 0%",118.2,12.2,0,4.8,68],["Burro di arachidi",23.1,6.1,11.5,2.8,138],["Gallette di riso",43,3.4,0.4,34.7,161]]}
 ]}
 };
 
